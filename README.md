@@ -1,22 +1,10 @@
-# pmp-template
+# Efficient Generation Of Meshlets
 
-This repository provides a simple project template for writing your own
-algorithms and applications using the pmp-library. It directly includes the
-pmp-library repository as a git submodule. To get started, just clone the
-repository recursively:
-
-    git clone --recursive https://github.com/pmp-library/pmp-template.git
-
-Configure and build:
-
-    cd pmp-template && mkdir build && cd build && cmake .. && make
-
-Run the viewer:
-
-    ./myviewer
+This repository contains the code for the Bachelor's Thesis "Efficient Generation Of Meshlets" by [Michael Borisov](mailto:ge96jab@mytum.de), written at the Technical University of Munich. <br />
+It uses the [pmp-library](https://github.com/pmp-library/pmp-library) and is forked from the [pmp-template repository](https://github.com/pmp-library/pmp-template).
 
 ## License
 
-As the pmp-library itself, this template is provided under a simple and flexible MIT-style
+Both the pmp-library itself and the template are provided under a simple and flexible MIT-style
 [license](https://github.com/pmp-library/pmp-template/blob/master/LICENSE.txt),
 thereby allowing for both open-source and commercial usage.
