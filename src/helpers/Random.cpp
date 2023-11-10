@@ -3,8 +3,8 @@
 namespace helpers {
 pmp::Face pick_random_face(pmp::SurfaceMesh &mesh)
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(
+        std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_int_distribution<> dis(0, mesh.n_faces() - 1);
     int random_face_index = dis(gen);
     auto begin = mesh.faces_begin();
@@ -14,8 +14,8 @@ pmp::Face pick_random_face(pmp::SurfaceMesh &mesh)
 
 pmp::Vertex pick_random_vertex(pmp::SurfaceMesh &mesh)
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(
+        std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_int_distribution<> dis(0, mesh.n_vertices() - 1);
     int random_vertex_index = dis(gen);
     auto begin = mesh.vertices_begin();
@@ -25,8 +25,8 @@ pmp::Vertex pick_random_vertex(pmp::SurfaceMesh &mesh)
 
 pmp::Edge pick_random_edge(pmp::SurfaceMesh &mesh)
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(
+        std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_int_distribution<> dis(0, mesh.n_edges() - 1);
     int random_edge_index = dis(gen);
     auto begin = mesh.edges_begin();
@@ -36,8 +36,8 @@ pmp::Edge pick_random_edge(pmp::SurfaceMesh &mesh)
 
 pmp::Color generate_random_color()
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(
+        std::chrono::system_clock::now().time_since_epoch().count());
     std::uniform_int_distribution<> dis(0, 255);
     pmp::Color color;
     while (true)
