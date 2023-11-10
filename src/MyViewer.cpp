@@ -76,7 +76,11 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Generate Sites"))
         {
+            auto start = std::chrono::high_resolution_clock::now();
             sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Generating Sites took: " << elapsed.count() << " s\n";
             meshlets::show_faces_with_sites(mesh_, sites_);
             update_mesh();
             set_draw_mode("Smooth Shading");
