@@ -102,6 +102,9 @@ proguard/
 # Android Studio captures folder
 captures/
 
+#ignore meshes
+meshes/
+
 #VsCode
 .vscode/
 
