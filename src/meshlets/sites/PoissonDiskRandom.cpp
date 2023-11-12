@@ -44,8 +44,8 @@ std::vector<Site> generate_pds_sites(pmp::SurfaceMesh &mesh, int amount)
 
         if (is_valid_site(mesh, sites, centroid))
         {
-            // get normal of face
             is_site[face] = true;
+            // get normal of face
             pmp::vec3 normal = pmp::face_normal(mesh, face);
             sites[selected] = Site(selected, face, centroid, normal);
             selected++;

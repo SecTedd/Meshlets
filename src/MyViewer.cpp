@@ -3,10 +3,12 @@
 
 #include "MyViewer.h"
 #include "meshlets/sites/PoissonDiskRandom.h"
+#include "meshlets/sites/RandomSites.h"
 #include "meshlets/visualization/ShowSites.h"
 #include "meshlets/io/WriteSites.h"
 #include "meshlets/clustering/GrowSites.h"
 #include "meshlets/clustering/BruteForceClustering.h"
+#include "meshlets/clustering/CombinedGrowingAndSampling.h"
 #include "meshlets/visualization/ShowMeshlets.h"
 #include "meshlets/visualization/ShowSites.h"
 
@@ -67,14 +69,14 @@ void MyViewer::process_imgui()
 
     if (ImGui::CollapsingHeader("Meshlets", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        static int num_sites = mesh_.n_faces() * 0.002;
+        static int num_sites = mesh_.n_faces() * 0.005;
         int min = mesh_.n_faces() * 0.001;
-        int max = mesh_.n_faces() * 0.005;
+        int max = mesh_.n_faces() * 0.01;
         ImGui::SliderInt("Number of Sites", &num_sites, min, max, "%d");
 
         ImGui::Spacing();
 
-        if (ImGui::Button("Generate Sites"))
+        if (ImGui::Button("Generate PDS Sites"))
         {
             auto start = std::chrono::high_resolution_clock::now();
             sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
@@ -91,8 +93,53 @@ void MyViewer::process_imgui()
 
         ImGui::Spacing();
 
+        if (ImGui::Button("Generate Random Sites"))
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+            sites_ = meshlets::generate_random_sites(mesh_, num_sites);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Generating Sites took: " << elapsed.count() << " s\n";
+            meshlets::show_faces_with_sites(mesh_, sites_);
+            update_mesh();
+            set_draw_mode("Smooth Shading");
+            renderer_.set_diffuse(0.9);
+            renderer_.set_specular(0.0);
+            renderer_.set_shininess(1.0);
+        }
+
+        ImGui::Spacing();
+
         static int max_iterations = 1000;
         ImGui::InputInt("Max Iterations", &max_iterations);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Combined Growing and Sampling"))
+        {
+            // measure time
+            auto start = std::chrono::high_resolution_clock::now();
+            sites_ =
+                meshlets::combined_growing_and_sampling(mesh_, max_iterations);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Growing and Sampling took: " << elapsed.count()
+                      << " s\n";
+            meshlets::color_meshlets(mesh_, sites_);
+            update_mesh();
+            if (max_iterations != 1000)
+            {
+                set_draw_mode("Hidden Line");
+                max_iterations++;
+            }
+            else
+            {
+                set_draw_mode("Smooth Shading");
+            }
+            renderer_.set_shininess(0);
+            renderer_.set_specular(0);
+            renderer_.set_diffuse(0);
+        }
 
         ImGui::Spacing();
 
