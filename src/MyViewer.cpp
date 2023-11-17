@@ -8,7 +8,7 @@
 #include "meshlets/io/WriteSites.h"
 #include "meshlets/clustering/GrowSites.h"
 #include "meshlets/clustering/BruteForceClustering.h"
-#include "meshlets/clustering/CombinedGrowingAndSampling.h"
+#include "meshlets/clustering/Lloyd.h"
 #include "meshlets/visualization/ShowMeshlets.h"
 #include "meshlets/visualization/ShowSites.h"
 
@@ -115,34 +115,6 @@ void MyViewer::process_imgui()
 
         ImGui::Spacing();
 
-        if (ImGui::Button("Combined Growing and Sampling"))
-        {
-            // measure time
-            auto start = std::chrono::high_resolution_clock::now();
-            sites_ =
-                meshlets::combined_growing_and_sampling(mesh_, max_iterations);
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Growing and Sampling took: " << elapsed.count()
-                      << " s\n";
-            meshlets::color_meshlets(mesh_, sites_);
-            update_mesh();
-            if (max_iterations != 1000)
-            {
-                set_draw_mode("Hidden Line");
-                max_iterations++;
-            }
-            else
-            {
-                set_draw_mode("Smooth Shading");
-            }
-            renderer_.set_shininess(0);
-            renderer_.set_specular(0);
-            renderer_.set_diffuse(0);
-        }
-
-        ImGui::Spacing();
-
         if (ImGui::Button("Grow Sites"))
         {
             if (sites_.empty())
@@ -195,9 +167,6 @@ void MyViewer::process_imgui()
         }
 
         ImGui::Spacing();
-        ImGui::Spacing();
-        ImGui::Spacing();
-        ImGui::Spacing();
 
         static int benchmark_iterations = 1000;
         ImGui::InputInt("Benchmark Iterations", &benchmark_iterations);
@@ -248,6 +217,34 @@ void MyViewer::process_imgui()
 
             std::cout << "Mean BF-Clustering over " << benchmark_iterations
                       << " iterations: " << elapsed.count() << " s\n";
+            meshlets::color_meshlets(mesh_, sites_);
+            update_mesh();
+            set_draw_mode("Smooth Shading");
+            renderer_.set_shininess(0);
+            renderer_.set_specular(0);
+            renderer_.set_diffuse(0);
+        }
+
+        ImGui::Spacing();
+
+        static int lloyd_iterations = 20;
+        ImGui::InputInt("Lloyd Iterations", &lloyd_iterations);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Lloyd"))
+        {
+            if (sites_.empty())
+            {
+                sites_ = meshlets::generate_random_sites(mesh_, num_sites);
+            }
+            auto start = std::chrono::high_resolution_clock::now();
+            sites_ = meshlets::lloyd(mesh_, sites_, lloyd_iterations);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = (end - start);
+
+            std::cout << "Lloyd with " << lloyd_iterations
+                      << " iterations took: " << elapsed.count() << " s\n";
             meshlets::color_meshlets(mesh_, sites_);
             update_mesh();
             set_draw_mode("Smooth Shading");
