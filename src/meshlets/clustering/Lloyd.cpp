@@ -61,6 +61,9 @@ std::vector<Site> generate_new_sites(
     std::vector<Site> new_sites(sites.size());
     pmp::FaceProperty<bool> is_site = mesh.get_face_property<bool>("f:is_site");
 
+    // float to keep track of the mean move distance the sites made (relevant for the stopping criterion)
+    float mean_move_distance = 0.0f;
+
     for (auto &site : sites)
     {
         auto meshlet = meshlets[site.id].get();
@@ -95,8 +98,16 @@ std::vector<Site> generate_new_sites(
         auto position = pmp::centroid(mesh, new_site_face);
 
         new_sites[site.id] = Site(site.id, new_site_face, position, normal);
-    }  
 
+        // compute move distance
+        mean_move_distance += pmp::distance(site.position, position);
+    }
+    mean_move_distance /= sites.size();
+
+    if (mean_move_distance < 1.0e-5f)
+    {
+        return std::vector<Site>();
+    }
     return new_sites;
 }
 
@@ -113,10 +124,20 @@ std::vector<Site> lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
         // collect sites
         std::vector<std::unique_ptr<std::vector<pmp::Face>>> meshlets =
             collect_meshlets(mesh, sites);
-        // update sites
-        sites = generate_new_sites(mesh, sites, meshlets);
+        // update sites and check for stopping criterion
+        auto new_sites = generate_new_sites(mesh, sites, meshlets);
+        if (new_sites.empty())
+        {
+            break;
+        }
+        else
+        {
+            sites = new_sites;
+        }
         current_iteration++;
     }
+    std::cout << "Lloyd made: " << current_iteration << " iterations."
+              << std::endl;
     return sites;
 }
 } // namespace meshlets

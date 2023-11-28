@@ -227,8 +227,8 @@ void MyViewer::process_imgui()
 
         ImGui::Spacing();
 
-        static int lloyd_iterations = 20;
-        ImGui::InputInt("Lloyd Iterations", &lloyd_iterations);
+        static int max_lloyd_iterations = 100;
+        ImGui::InputInt("Max Lloyd Iterations", &max_lloyd_iterations);
 
         ImGui::Spacing();
 
@@ -239,12 +239,11 @@ void MyViewer::process_imgui()
                 sites_ = meshlets::generate_random_sites(mesh_, num_sites);
             }
             auto start = std::chrono::high_resolution_clock::now();
-            sites_ = meshlets::lloyd(mesh_, sites_, lloyd_iterations);
+            sites_ = meshlets::lloyd(mesh_, sites_, max_lloyd_iterations);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = (end - start);
 
-            std::cout << "Lloyd with " << lloyd_iterations
-                      << " iterations took: " << elapsed.count() << " s\n";
+            std::cout << "Lloyd took: " << elapsed.count() << " s\n";
             meshlets::color_meshlets(mesh_, sites_);
             update_mesh();
             set_draw_mode("Smooth Shading");
