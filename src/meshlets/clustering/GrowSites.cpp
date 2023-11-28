@@ -1,6 +1,7 @@
 #include "./GrowSites.h"
 #include "pmp/algorithms/differential_geometry.h"
-#include "../visualization/ShowMeshlets.h"
+#include "pmp/algorithms/normals.h"
+#include "../../helpers/CubicBezier.h"
 
 namespace meshlets {
 
@@ -51,6 +52,15 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
             std::vector<std::unique_ptr<std::vector<pmp::Face>>>>();
     }
 
+    // normal penalty for the angle between the normal of the site and the normal of the face
+    float max_penalty = 2.0f;
+    float min_penalty = 0.7f;
+    // control points for the cubic bezier curve of the angle between the normal of the site and the normal of the face
+    helpers::Point p0(0.0f, max_penalty);
+    helpers::Point p1(1.0f, max_penalty);
+    helpers::Point p2(0.75f, max_penalty);
+    helpers::Point p3(1.0f, min_penalty);
+
     int changed = 1;
     while (changed > 0 && current_iteration <= max_iterations)
     {
@@ -97,18 +107,52 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                                             ->push_back(f);
                                         changed++;
                                     }
-                                    else if (pmp::distance(
-                                                 site.position,
-                                                 pmp::centroid(mesh, f)) <
-                                             pmp::distance(
-                                                 sites[closest_site[f]]
-                                                     .position,
-                                                 pmp::centroid(mesh, f)))
+                                    // face belongs to another site
+                                    else
                                     {
-                                        closest_site[f] = site.id;
-                                        faces_added_in_current_iteration
-                                            ->push_back(f);
-                                        changed++;
+                                        auto other_site =
+                                            sites[closest_site[f]];
+                                        auto site_normal = site.normal;
+                                        site_normal.normalize();
+                                        auto other_site_normal =
+                                            other_site.normal;
+                                        other_site_normal.normalize();
+                                        auto face_normal =
+                                            pmp::face_normal(mesh, f);
+                                        face_normal.normalize();
+
+                                        float penalty_site =
+                                            helpers::cubicBezier(
+                                                (pmp::dot(site_normal,
+                                                          face_normal) +
+                                                 1) /
+                                                    2,
+                                                p0, p1, p2, p3)
+                                                .y;
+
+                                        float penalty_other_site =
+                                            helpers::cubicBezier(
+                                                (pmp::dot(other_site_normal,
+                                                          face_normal) +
+                                                 1) /
+                                                    2,
+                                                p0, p1, p2, p3)
+                                                .y;
+
+                                        if (penalty_site *
+                                                pmp::distance(
+                                                    site.position,
+                                                    pmp::centroid(mesh, f)) <
+                                            penalty_other_site *
+                                                pmp::distance(
+                                                    other_site.position,
+                                                    pmp::centroid(mesh, f)))
+                                        {
+                                            closest_site[f] = site.id;
+                                            faces_added_in_current_iteration
+                                                ->push_back(f);
+                                            changed++;
+                                        }
                                     }
                                 }
                             }
