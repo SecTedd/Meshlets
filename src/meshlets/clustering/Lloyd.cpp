@@ -61,8 +61,8 @@ std::vector<Site> generate_new_sites(
     std::vector<Site> new_sites(sites.size());
     pmp::FaceProperty<bool> is_site = mesh.get_face_property<bool>("f:is_site");
 
-    // float to keep track of the mean move distance the sites made (relevant for the stopping criterion)
-    float mean_move_distance = 0.0f;
+    // count how many meshlets changed their center triangle (relevant for stopping criterion)
+    int center_triangle_changed_count = 0;
 
     for (auto &site : sites)
     {
@@ -99,12 +99,13 @@ std::vector<Site> generate_new_sites(
 
         new_sites[site.id] = Site(site.id, new_site_face, position, normal);
 
-        // compute move distance
-        mean_move_distance += pmp::distance(site.position, position);
+        if (new_site_face != site.face)
+        {
+            center_triangle_changed_count++;
+        }
     }
-    mean_move_distance /= sites.size();
 
-    if (mean_move_distance < 1.0e-5f)
+    if (center_triangle_changed_count < sites.size() * 0.01)
     {
         return std::vector<Site>();
     }
