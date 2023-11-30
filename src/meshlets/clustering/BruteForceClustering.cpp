@@ -2,7 +2,7 @@
 #include "BruteForceClustering.h"
 
 namespace meshlets {
-void brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
+Cluster brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
 {
     // create a face property to store the closest site
     pmp::FaceProperty<int> closest_site;
@@ -17,6 +17,33 @@ void brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
         {
             closest_site[face] = -1;
         }
+    }
+    // create a face property to store the iteration in which the face was added
+    pmp::FaceProperty<int> added_in_iteration;
+    if (!mesh.has_face_property("f:added_in_iteration"))
+    {
+        added_in_iteration =
+            mesh.add_face_property<int>("f:added_in_iteration", -1);
+    }
+    else
+    {
+        added_in_iteration =
+            mesh.get_face_property<int>("f:added_in_iteration");
+        for (auto face : mesh.faces())
+        {
+            added_in_iteration[face] = -1;
+        }
+    }
+
+    // create a vector to store a data structure for all sites:
+    // datastructure is a  vector of vectors to store the faces added in each iteration
+    Cluster cluster(sites.size());
+    for (auto &site : sites)
+    {
+        auto meshlet = std::make_unique<Meshlet>(1);
+        // create single vector for the only iteration there will be
+        meshlet->at(0) = std::make_unique<std::vector<pmp::Face>>();
+        cluster[site.id] = std::move(meshlet);
     }
 
     for (auto face : mesh.faces())
@@ -33,8 +60,13 @@ void brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
             {
                 min_distance = distance;
                 closest_site[face] = site.id;
+                added_in_iteration[face] = 0;
             }
         }
+        // add face to the meshlet of the closest site
+        cluster[closest_site[face]]->at(0)->push_back(face);
     }
+
+    return cluster;
 }
 } // namespace meshlets

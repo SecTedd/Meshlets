@@ -2,7 +2,7 @@
 #include "../../helpers/Random.h"
 
 namespace meshlets {
-void color_meshlets(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
+void color_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
 {
     // create color face property
     pmp::FaceProperty<pmp::Color> color;
@@ -24,20 +24,31 @@ void color_meshlets(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
     assert(is_site);
     assert(closest_site);
 
-    for (auto face : mesh.faces())
+    std::vector<pmp::Color> colors(cluster.size());
+
+    for (auto &meshlet : cluster)
     {
-        if (is_site[face])
+        for (auto face : get_faces(*meshlet))
         {
-            color[face] = pmp::Color(0, 0, 0);
-            continue;
+            int site_id = closest_site[face];
+
+            if (is_site[face])
+            {
+                color[face] = pmp::Color(0, 0, 0);
+                continue;
+            }
+            if (site_id == -1)
+            {
+                std::cerr << "WARNING: Face " << face.idx() << " has no closest site"
+                          << std::endl;
+                continue;
+            }
+            if (colors[site_id] == pmp::Color(0, 0, 0))
+            {
+                colors[site_id] = helpers::generate_random_color();
+            }
+            color[face] = colors[site_id];
         }
-        if (closest_site[face] == -1)
-        {
-            color[face] = pmp::Color(0.7, 0.7, 0.7);
-            continue;
-        }
-        auto site = sites[closest_site[face]];
-        color[face] = site.color;
     }
 }
 } // namespace meshlets

@@ -1,7 +1,7 @@
 #include "ShowSites.h"
 
 namespace meshlets {
-void show_faces_with_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
+void show_faces_with_sites(pmp::SurfaceMesh &mesh)
 {
     pmp::FaceProperty<pmp::Color> color;
     if (!mesh.has_face_property("f:color"))

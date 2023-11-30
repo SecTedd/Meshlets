@@ -67,7 +67,81 @@ void MyViewer::process_imgui()
     ImGui::Spacing();
     ImGui::Spacing();
 
-    if (ImGui::CollapsingHeader("Meshlets", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Visualization and Statistics",
+                                ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        if (ImGui::Button("Show Sites"))
+        {
+            if (cluster_and_sites.sites.empty())
+            {
+                std::cerr << "No sites generated yet" << std::endl;
+                return;
+            }
+            meshlets::show_faces_with_sites(mesh_);
+            update_mesh();
+            set_draw_mode("Smooth Shading");
+            renderer_.set_diffuse(0.9);
+            renderer_.set_specular(0.0);
+            renderer_.set_shininess(1.0);
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Show Meshlets"))
+        {
+            if (cluster_and_sites.cluster.empty())
+            {
+                std::cerr << "Clustering not computed yet" << std::endl;
+                return;
+            }
+            meshlets::color_meshlets(mesh_, cluster_and_sites.cluster);
+            update_mesh();
+            set_draw_mode("Smooth Shading");
+            renderer_.set_shininess(0);
+            renderer_.set_specular(0);
+            renderer_.set_diffuse(0);
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Validate Meshlets"))
+        {
+            if (cluster_and_sites.cluster.empty())
+            {
+                std::cerr << "Clustering not computed yet" << std::endl;
+                return;
+            }
+            int num_valid = 0;
+            int total = cluster_and_sites.cluster.size();
+            meshlets::Cluster cluster_with_only_invalid_meshlets;
+
+            for (auto &meshlet : cluster_and_sites.cluster)
+            {
+                if (meshlets::is_valid(mesh_, *meshlet))
+                {
+                    num_valid++;
+                }
+                else
+                {
+                    cluster_with_only_invalid_meshlets.push_back(
+                        std::move(meshlet));
+                }
+            }
+            meshlets::color_meshlets(mesh_, cluster_with_only_invalid_meshlets);
+            update_mesh();
+            set_draw_mode("Smooth Shading");
+            renderer_.set_shininess(0);
+            renderer_.set_specular(0);
+            renderer_.set_diffuse(0);
+            std::cout << "Valid Meshlets: " << num_valid << "/" << total
+                      << std::endl;
+        }
+    }
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    if (ImGui::CollapsingHeader("Algorithms", ImGuiTreeNodeFlags_DefaultOpen))
     {
         static int num_sites = mesh_.n_faces() * 0.005;
         int min = mesh_.n_faces() * 0.001;
@@ -79,16 +153,11 @@ void MyViewer::process_imgui()
         if (ImGui::Button("Generate PDS Sites"))
         {
             auto start = std::chrono::high_resolution_clock::now();
-            sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
+            cluster_and_sites.sites =
+                meshlets::generate_pds_sites(mesh_, num_sites);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Generating Sites took: " << elapsed.count() << " s\n";
-            meshlets::show_faces_with_sites(mesh_, sites_);
-            update_mesh();
-            set_draw_mode("Smooth Shading");
-            renderer_.set_diffuse(0.9);
-            renderer_.set_specular(0.0);
-            renderer_.set_shininess(1.0);
         }
 
         ImGui::Spacing();
@@ -96,133 +165,55 @@ void MyViewer::process_imgui()
         if (ImGui::Button("Generate Random Sites"))
         {
             auto start = std::chrono::high_resolution_clock::now();
-            sites_ = meshlets::generate_random_sites(mesh_, num_sites);
+            cluster_and_sites.sites =
+                meshlets::generate_random_sites(mesh_, num_sites);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Generating Sites took: " << elapsed.count() << " s\n";
-            meshlets::show_faces_with_sites(mesh_, sites_);
-            update_mesh();
-            set_draw_mode("Smooth Shading");
-            renderer_.set_diffuse(0.9);
-            renderer_.set_specular(0.0);
-            renderer_.set_shininess(1.0);
         }
 
         ImGui::Spacing();
 
         static int max_iterations = 1000;
-        ImGui::InputInt("Max Iterations", &max_iterations);
+        ImGui::InputInt("Max Iterations For Growing", &max_iterations);
 
         ImGui::Spacing();
 
         if (ImGui::Button("Grow Sites"))
         {
-            if (sites_.empty())
+            if (cluster_and_sites.sites.empty())
             {
-                sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
+                std::cerr << "No sites generated. Please generate sites first."
+                          << std::endl;
+                return;
             }
             // measure time
             auto start = std::chrono::high_resolution_clock::now();
-            meshlets::grow_sites(mesh_, sites_, max_iterations);
+            cluster_and_sites.cluster = meshlets::grow_sites(
+                mesh_, cluster_and_sites.sites, max_iterations);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Growing Sites took: " << elapsed.count() << " s\n";
-            meshlets::color_meshlets(mesh_, sites_);
-            update_mesh();
-            if (max_iterations != 1000)
-            {
-                set_draw_mode("Hidden Line");
-                max_iterations++;
-            }
-            else
-            {
-                set_draw_mode("Smooth Shading");
-            }
-            renderer_.set_shininess(0);
-            renderer_.set_specular(0);
-            renderer_.set_diffuse(0);
         }
 
         ImGui::Spacing();
 
         if (ImGui::Button("Brute Force Clustering"))
         {
-            if (sites_.empty())
+            if (cluster_and_sites.sites.empty())
             {
-                sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
+                std::cerr << "No sites generated. Please generate sites first."
+                          << std::endl;
+                return;
             }
             // measure time
             auto start = std::chrono::high_resolution_clock::now();
-            meshlets::brute_force_sites(mesh_, sites_);
+            cluster_and_sites.cluster =
+                meshlets::brute_force_sites(mesh_, cluster_and_sites.sites);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Brute Force Clustering took: " << elapsed.count()
                       << " s\n";
-            meshlets::color_meshlets(mesh_, sites_);
-            update_mesh();
-            set_draw_mode("Smooth Shading");
-            renderer_.set_shininess(0);
-            renderer_.set_specular(0);
-            renderer_.set_diffuse(0);
-        }
-
-        ImGui::Spacing();
-
-        static int benchmark_iterations = 1000;
-        ImGui::InputInt("Benchmark Iterations", &benchmark_iterations);
-
-        if (ImGui::Button("Benchmark GS-Clustering"))
-        {
-            if (sites_.empty())
-            {
-                sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
-            }
-            // measure time
-            auto start = std::chrono::high_resolution_clock::now();
-            for (int i = 0; i < benchmark_iterations; i++)
-            {
-                meshlets::grow_sites(mesh_, sites_);
-            }
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed =
-                (end - start) / benchmark_iterations;
-
-            std::cout << "Mean GS-Clustering over " << benchmark_iterations
-                      << " iterations: " << elapsed.count() << " s\n";
-            meshlets::color_meshlets(mesh_, sites_);
-            update_mesh();
-            set_draw_mode("Smooth Shading");
-            renderer_.set_shininess(0);
-            renderer_.set_specular(0);
-            renderer_.set_diffuse(0);
-        }
-
-        ImGui::Spacing();
-
-        if (ImGui::Button("Benchmark BF-Clustering"))
-        {
-            if (sites_.empty())
-            {
-                sites_ = meshlets::generate_pds_sites(mesh_, num_sites);
-            }
-            // measure time
-            auto start = std::chrono::high_resolution_clock::now();
-            for (int i = 0; i < benchmark_iterations; i++)
-            {
-                meshlets::brute_force_sites(mesh_, sites_);
-            }
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed =
-                (end - start) / benchmark_iterations;
-
-            std::cout << "Mean BF-Clustering over " << benchmark_iterations
-                      << " iterations: " << elapsed.count() << " s\n";
-            meshlets::color_meshlets(mesh_, sites_);
-            update_mesh();
-            set_draw_mode("Smooth Shading");
-            renderer_.set_shininess(0);
-            renderer_.set_specular(0);
-            renderer_.set_diffuse(0);
         }
 
         ImGui::Spacing();
@@ -234,22 +225,71 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Lloyd"))
         {
-            if (sites_.empty())
+            if (cluster_and_sites.sites.empty())
             {
-                sites_ = meshlets::generate_random_sites(mesh_, num_sites);
+                std::cerr << "No sites generated. Please generate sites first."
+                          << std::endl;
+                return;
             }
             auto start = std::chrono::high_resolution_clock::now();
-            sites_ = meshlets::lloyd(mesh_, sites_, max_lloyd_iterations);
+            cluster_and_sites = meshlets::lloyd(mesh_, cluster_and_sites.sites,
+                                                max_lloyd_iterations);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = (end - start);
+            std::cout << "and took: " << elapsed.count() << " s\n";
+        }
+    }
 
-            std::cout << "Lloyd took: " << elapsed.count() << " s\n";
-            meshlets::color_meshlets(mesh_, sites_);
-            update_mesh();
-            set_draw_mode("Smooth Shading");
-            renderer_.set_shininess(0);
-            renderer_.set_specular(0);
-            renderer_.set_diffuse(0);
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    if (ImGui::CollapsingHeader("Benchmarking"))
+    {
+        static int benchmark_iterations = 1000;
+        ImGui::InputInt("Benchmark Iterations", &benchmark_iterations);
+
+        if (ImGui::Button("Benchmark GS-Clustering"))
+        {
+            if (cluster_and_sites.sites.empty())
+            {
+                std::cerr << "No sites generated. Please generate sites first."
+                          << std::endl;
+                return;
+            }
+            // measure time
+            auto start = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < benchmark_iterations; i++)
+            {
+                meshlets::grow_sites(mesh_, cluster_and_sites.sites);
+            }
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed =
+                (end - start) / benchmark_iterations;
+            std::cout << "Mean GS-Clustering over " << benchmark_iterations
+                      << " iterations: " << elapsed.count() << " s\n";
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Benchmark BF-Clustering"))
+        {
+            if (cluster_and_sites.sites.empty())
+            {
+                std::cerr << "No sites generated. Please generate sites first."
+                          << std::endl;
+                return;
+            }
+            // measure time
+            auto start = std::chrono::high_resolution_clock::now();
+            for (int i = 0; i < benchmark_iterations; i++)
+            {
+                meshlets::brute_force_sites(mesh_, cluster_and_sites.sites);
+            }
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed =
+                (end - start) / benchmark_iterations;
+            std::cout << "Mean BF-Clustering over " << benchmark_iterations
+                      << " iterations: " << elapsed.count() << " s\n";
         }
     }
 
@@ -264,4 +304,12 @@ void MyViewer::process_imgui()
             meshlets::write_sites(mesh_, filename);
         }
     }
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    ImGui::TextColored(ImVec4(0.04, 0.43, 0.3, 1), "%s", info_text.c_str());
+
+    ImGui::Spacing();
+    ImGui::Spacing();
 }

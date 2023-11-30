@@ -5,8 +5,8 @@
 
 namespace meshlets {
 
-void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
-                int max_iterations)
+Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
+                   int max_iterations)
 {
     // create a face property to store the closest site
     pmp::FaceProperty<int> closest_site;
@@ -20,6 +20,22 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
         for (auto face : mesh.faces())
         {
             closest_site[face] = -1;
+        }
+    }
+    // create a face property to store the iteration in which the face was added
+    pmp::FaceProperty<int> added_in_iteration;
+    if (!mesh.has_face_property("f:added_in_iteration"))
+    {
+        added_in_iteration =
+            mesh.add_face_property<int>("f:added_in_iteration", -1);
+    }
+    else
+    {
+        added_in_iteration =
+            mesh.get_face_property<int>("f:added_in_iteration");
+        for (auto face : mesh.faces())
+        {
+            added_in_iteration[face] = -1;
         }
     }
     // create a vertex property to store the visited state of that vertex
@@ -38,18 +54,16 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
     }
     // get face property indicating whether a face is a site (this is set in the site generation)
     pmp::FaceProperty<bool> is_site = mesh.get_face_property<bool>("f:is_site");
+    assert(is_site);
     int current_iteration = 0;
     int mean_faces_added_per_iteration = 100;
 
     // create a vector to store a data structure for all sites:
     // datastructure is a  vector of vectors to store the faces added in each iteration
-    std::vector<
-        std::unique_ptr<std::vector<std::unique_ptr<std::vector<pmp::Face>>>>>
-        data_base(sites.size());
+    Cluster cluster(sites.size());
     for (auto &site : sites)
     {
-        data_base[site.id] = std::make_unique<
-            std::vector<std::unique_ptr<std::vector<pmp::Face>>>>();
+        cluster[site.id] = std::make_unique<Meshlet>();
     }
 
     // normal penalty for the angle between the normal of the site and the normal of the face
@@ -68,10 +82,12 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
         for (auto &site : sites)
         {
             // get the data structure for the current site
-            auto &faces_added_per_iteration = data_base[site.id];
+            auto &faces_added_per_iteration = cluster[site.id];
             // create a vector to store the faces added in the current iteration
             auto faces_added_in_current_iteration =
                 std::make_unique<std::vector<pmp::Face>>();
+            faces_added_in_current_iteration->reserve(
+                mean_faces_added_per_iteration);
             if (current_iteration == 0)
             {
                 faces_added_in_current_iteration->push_back(site.face);
@@ -100,9 +116,12 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                             {
                                 if (!is_site[f] && closest_site[f] != site.id)
                                 {
+                                    // face has no closest site yet
                                     if (closest_site[f] == -1)
                                     {
                                         closest_site[f] = site.id;
+                                        added_in_iteration[f] =
+                                            current_iteration;
                                         faces_added_in_current_iteration
                                             ->push_back(f);
                                         changed++;
@@ -148,7 +167,26 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                                                     other_site.position,
                                                     pmp::centroid(mesh, f)))
                                         {
+                                            // remove the face from the other site
+                                            auto &
+                                                faces_added_in_previous_iteration_other_site =
+                                                    cluster[other_site.id]->at(
+                                                        added_in_iteration[f]);
+
+                                            faces_added_in_previous_iteration_other_site
+                                                ->erase(
+                                                    std::remove(
+                                                        faces_added_in_previous_iteration_other_site
+                                                            ->begin(),
+                                                        faces_added_in_previous_iteration_other_site
+                                                            ->end(),
+                                                        f),
+                                                    faces_added_in_previous_iteration_other_site
+                                                        ->end());
+                                            // take the face
                                             closest_site[f] = site.id;
+                                            added_in_iteration[f] =
+                                                current_iteration;
                                             faces_added_in_current_iteration
                                                 ->push_back(f);
                                             changed++;
@@ -165,5 +203,6 @@ void grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
         }
         current_iteration++;
     }
+    return cluster;
 }
 } // namespace meshlets

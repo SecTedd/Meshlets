@@ -3,45 +3,19 @@
 #include "pmp/algorithms/normals.h"
 
 namespace meshlets {
-std::vector<std::unique_ptr<std::vector<pmp::Face>>> collect_meshlets(
-    pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
-{
-    std::vector<std::unique_ptr<std::vector<pmp::Face>>> meshlets(sites.size());
-
-    for (auto &site : sites)
-    {
-        auto meshlet = std::make_unique<std::vector<pmp::Face>>();
-        meshlet->push_back(site.face);
-        meshlets[site.id] = std::move(meshlet);
-    }
-
-    pmp::FaceProperty<int> closest_site =
-        mesh.get_face_property<int>("f:closest_site");
-
-    for (auto face : mesh.faces())
-    {
-        if (closest_site[face] != -1)
-        {
-            meshlets[closest_site[face]]->push_back(face);
-        }
-    }
-
-    return meshlets;
-}
-
 float median(std::vector<float> &values)
 {
     std::sort(values.begin(), values.end());
     return values[values.size() / 2];
 }
 
-pmp::Face find_closest_triangle(pmp::SurfaceMesh &mesh,
-                                std::vector<pmp::Face> &faces,
+pmp::Face find_closest_triangle(pmp::SurfaceMesh &mesh, Meshlet &meshlet,
                                 pmp::Point seed_point)
 {
+    auto faces = get_faces(meshlet);
     float min_distance = std::numeric_limits<float>::max();
     pmp::Face closest_face;
-    for (auto face : faces)
+    for (auto &face : faces)
     {
         auto centroid = pmp::centroid(mesh, face);
         auto distance = pmp::distance(centroid, seed_point);
@@ -54,29 +28,28 @@ pmp::Face find_closest_triangle(pmp::SurfaceMesh &mesh,
     return closest_face;
 }
 
-std::vector<Site> generate_new_sites(
-    pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
-    std::vector<std::unique_ptr<std::vector<pmp::Face>>> &meshlets)
+std::vector<Site> generate_new_sites(pmp::SurfaceMesh &mesh,
+                                     std::vector<Site> &old_sites,
+                                     Cluster &cluster)
 {
-    std::vector<Site> new_sites(sites.size());
+    std::vector<Site> new_sites(old_sites.size());
     pmp::FaceProperty<bool> is_site = mesh.get_face_property<bool>("f:is_site");
+    assert(is_site);
 
     // count how many meshlets changed their center triangle (relevant for stopping criterion)
     int center_triangle_changed_count = 0;
 
-    for (auto &site : sites)
+    for (auto &site : old_sites)
     {
-        auto meshlet = meshlets[site.id].get();
+        auto meshlet = cluster[site.id].get();
         is_site[site.face] = false;
 
         // create point cloud containing meshlet face centroids
         std::vector<float> points_x;
         std::vector<float> points_y;
         std::vector<float> points_z;
-        points_x.reserve(meshlet->size());
-        points_y.reserve(meshlet->size());
-        points_z.reserve(meshlet->size());
-        for (auto face : *meshlet)
+
+        for (auto face : get_faces(*meshlet))
         {
             auto centroid = pmp::centroid(mesh, face);
             points_x.push_back(centroid[0]);
@@ -105,40 +78,38 @@ std::vector<Site> generate_new_sites(
         }
     }
 
-    if (center_triangle_changed_count < sites.size() * 0.01)
+    if (center_triangle_changed_count < old_sites.size() * 0.01)
     {
         return std::vector<Site>();
     }
     return new_sites;
 }
 
-std::vector<Site> lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
-                        int max_iterations)
+ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
+                      int max_iterations)
 {
-    std::vector<Site> sites = init_sites;
+    ClusterAndSites cluster_and_sites;
+    cluster_and_sites.sites = init_sites;
     int current_iteration = 0;
 
     while (current_iteration < max_iterations)
     {
         // grow sites
-        grow_sites(mesh, sites);
-        // collect sites
-        std::vector<std::unique_ptr<std::vector<pmp::Face>>> meshlets =
-            collect_meshlets(mesh, sites);
+        cluster_and_sites.cluster = grow_sites(mesh, cluster_and_sites.sites);
         // update sites and check for stopping criterion
-        auto new_sites = generate_new_sites(mesh, sites, meshlets);
+        auto new_sites = generate_new_sites(mesh, cluster_and_sites.sites,
+                                            cluster_and_sites.cluster);
         if (new_sites.empty())
         {
             break;
         }
         else
         {
-            sites = new_sites;
+            cluster_and_sites.sites = new_sites;
         }
         current_iteration++;
     }
-    std::cout << "Lloyd made: " << current_iteration << " iterations."
-              << std::endl;
-    return sites;
+    std::cout << "Lloyd made " << current_iteration << " iterations ";
+    return cluster_and_sites;
 }
 } // namespace meshlets
