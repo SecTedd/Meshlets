@@ -62,6 +62,27 @@ void MyViewer::process_imgui()
         {
             mesh_.property_stats();
         }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Check Clustering/Property Consistency"))
+        {
+            if (cluster_and_sites.cluster.empty())
+            {
+                std::cerr << "Clustering not computed yet" << std::endl;
+                return;
+            }
+            bool consistent =
+                meshlets::check_consistency(mesh_, cluster_and_sites.cluster);
+            if (consistent)
+            {
+                std::cout << "Consistent" << std::endl;
+            }
+            else
+            {
+                std::cout << "Inconsistent" << std::endl;
+            }
+        }
     }
 
     ImGui::Spacing();
@@ -111,9 +132,32 @@ void MyViewer::process_imgui()
                 std::cerr << "Clustering not computed yet" << std::endl;
                 return;
             }
+
+            // First check wheter all faces are assigned to a meshlet
+            auto is_site = mesh_.get_face_property<bool>("f:is_site");
+            auto closest_site = mesh_.get_face_property<int>("f:closest_site");
+            assert(is_site);
+            assert(closest_site);
+
+            for (auto face : mesh_.faces())
+            {
+                if (is_site[face])
+                {
+                    continue;
+                }
+                if (closest_site[face] == -1)
+                {
+                    std::cerr << "Face " << face.idx()
+                              << " is not assigned to a meshlet" << std::endl;
+                    return;
+                }
+            }
+
             int num_valid = 0;
             int total = cluster_and_sites.cluster.size();
+
             meshlets::Cluster cluster_with_only_invalid_meshlets;
+            cluster_with_only_invalid_meshlets.reserve(total);
 
             for (auto &meshlet : cluster_and_sites.cluster)
             {
@@ -124,17 +168,19 @@ void MyViewer::process_imgui()
                 else
                 {
                     cluster_with_only_invalid_meshlets.push_back(
-                        std::move(meshlet));
+                        std::make_shared<meshlets::Meshlet>(*meshlet));
                 }
             }
+            std::cout << "Valid Meshlets: " << num_valid << "/" << total << " ("
+                      << ((float)num_valid / (float)total) * 100 << "%)"
+                      << std::endl;
+
             meshlets::color_meshlets(mesh_, cluster_with_only_invalid_meshlets);
             update_mesh();
             set_draw_mode("Smooth Shading");
             renderer_.set_shininess(0);
             renderer_.set_specular(0);
             renderer_.set_diffuse(0);
-            std::cout << "Valid Meshlets: " << num_valid << "/" << total
-                      << std::endl;
         }
     }
 

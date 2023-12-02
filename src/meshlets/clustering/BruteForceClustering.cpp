@@ -34,37 +34,43 @@ Cluster brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
             added_in_iteration[face] = -1;
         }
     }
+    auto is_site = mesh.get_face_property<bool>("f:is_site");
+    assert(is_site);
 
     // create a vector to store a data structure for all sites:
     // datastructure is a  vector of vectors to store the faces added in each iteration
     Cluster cluster(sites.size());
     for (auto &site : sites)
     {
-        auto meshlet = std::make_unique<Meshlet>(1);
-        // create single vector for the only iteration there will be
-        meshlet->at(0) = std::make_unique<std::vector<pmp::Face>>();
+        auto meshlet = std::make_shared<Meshlet>(2);
+        // create vectors for the two iterations
+        meshlet->at(0) = std::make_shared<std::vector<pmp::Face>>();
+        meshlet->at(1) = std::make_shared<std::vector<pmp::Face>>();
+
+        meshlet->at(0)->push_back(site.face);
         cluster[site.id] = std::move(meshlet);
     }
 
     for (auto face : mesh.faces())
     {
+        if (is_site[face])
+        {
+            continue;
+        }
         auto centroid = pmp::centroid(mesh, face);
         float min_distance = std::numeric_limits<float>::max();
         for (auto &site : sites)
         {
-            if (site.face == face)
-                continue;
-
             float distance = pmp::distance(centroid, site.position);
             if (distance < min_distance)
             {
                 min_distance = distance;
                 closest_site[face] = site.id;
-                added_in_iteration[face] = 0;
+                added_in_iteration[face] = 1;
             }
         }
         // add face to the meshlet of the closest site
-        cluster[closest_site[face]]->at(0)->push_back(face);
+        cluster[closest_site[face]]->at(1)->push_back(face);
     }
 
     return cluster;

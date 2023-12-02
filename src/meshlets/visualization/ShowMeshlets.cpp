@@ -1,3 +1,4 @@
+#include <map>
 #include "ShowMeshlets.h"
 #include "../../helpers/Random.h"
 
@@ -24,7 +25,7 @@ void color_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
     assert(is_site);
     assert(closest_site);
 
-    std::vector<pmp::Color> colors(cluster.size());
+    std::map<int, pmp::Color> colors;
 
     for (auto &meshlet : cluster)
     {
@@ -43,7 +44,7 @@ void color_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
                           << std::endl;
                 continue;
             }
-            if (colors[site_id] == pmp::Color(0, 0, 0))
+            if (colors.find(site_id) == colors.end())
             {
                 colors[site_id] = helpers::generate_random_color();
             }

@@ -63,7 +63,7 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
     Cluster cluster(sites.size());
     for (auto &site : sites)
     {
-        cluster[site.id] = std::make_unique<Meshlet>();
+        cluster[site.id] = std::make_shared<Meshlet>();
     }
 
     // normal penalty for the angle between the normal of the site and the normal of the face
@@ -85,7 +85,7 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
             auto &faces_added_per_iteration = cluster[site.id];
             // create a vector to store the faces added in the current iteration
             auto faces_added_in_current_iteration =
-                std::make_unique<std::vector<pmp::Face>>();
+                std::make_shared<std::vector<pmp::Face>>();
             faces_added_in_current_iteration->reserve(
                 mean_faces_added_per_iteration);
             if (current_iteration == 0)
