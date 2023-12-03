@@ -171,7 +171,7 @@ bool check_consistency(pmp::SurfaceMesh &mesh, Cluster &cluster)
     assert(closest_site);
     assert(added_in_iteration);
 
-    bool consistent = true;
+    std::map<pmp::Face, bool> seen_faces;
 
     for (int site_id = 0; site_id < cluster.size(); site_id++)
     {
@@ -182,12 +182,21 @@ bool check_consistency(pmp::SurfaceMesh &mesh, Cluster &cluster)
             auto iteration = meshlet->at(iteration_num);
             for (auto &face : *iteration)
             {
+                // check if faces occur multiple times, which means they are part of multiple meshlets
+                if (seen_faces.find(face) == seen_faces.end())
+                {
+                    seen_faces[face] = true;
+                }
+                else
+                {
+                    return false;
+                }
                 if (is_site[face])
                 {
                     if (closest_site[face] != -1 ||
                         added_in_iteration[face] != -1)
                     {
-                        consistent = false;
+                        return false;
                     }
                 }
                 else
@@ -195,13 +204,13 @@ bool check_consistency(pmp::SurfaceMesh &mesh, Cluster &cluster)
                     if (closest_site[face] != site_id ||
                         added_in_iteration[face] != iteration_num)
                     {
-                        consistent = false;
+                        return false;
                     }
                 }
             }
         }
     }
 
-    return consistent;
+    return true;
 }
 } // namespace meshlets

@@ -48,7 +48,7 @@ Cluster brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
         meshlet->at(1) = std::make_shared<std::vector<pmp::Face>>();
 
         meshlet->at(0)->push_back(site.face);
-        cluster[site.id] = std::move(meshlet);
+        cluster[site.id] = meshlet;
     }
 
     for (auto face : mesh.faces())

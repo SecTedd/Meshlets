@@ -56,15 +56,9 @@ void MyViewer::process_imgui()
     ImGui::Spacing();
     ImGui::Spacing();
 
-    if (ImGui::CollapsingHeader("Mesh Properties"))
+    if (ImGui::CollapsingHeader("Mesh Properties"),
+        ImGuiTreeNodeFlags_DefaultOpen)
     {
-        if (ImGui::Button("Print Properties"))
-        {
-            mesh_.property_stats();
-        }
-
-        ImGui::Spacing();
-
         if (ImGui::Button("Check Clustering/Property Consistency"))
         {
             if (cluster_and_sites.cluster.empty())
@@ -149,6 +143,10 @@ void MyViewer::process_imgui()
                 {
                     std::cerr << "Face " << face.idx()
                               << " is not assigned to a meshlet" << std::endl;
+                    std::clog << "Face " << face.idx()
+                              << " is_site: " << is_site[face]
+                              << " closest_site: " << closest_site[face]
+                              << std::endl;
                     return;
                 }
             }

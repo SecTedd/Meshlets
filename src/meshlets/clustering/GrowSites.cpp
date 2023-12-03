@@ -93,7 +93,7 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                 faces_added_in_current_iteration->push_back(site.face);
                 changed++;
                 faces_added_per_iteration->push_back(
-                    std::move(faces_added_in_current_iteration));
+                    faces_added_in_current_iteration);
             }
             else
             {
@@ -198,7 +198,7 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                     }
                 }
                 faces_added_per_iteration->push_back(
-                    std::move(faces_added_in_current_iteration));
+                    faces_added_in_current_iteration);
             }
         }
         current_iteration++;

@@ -24,6 +24,10 @@ std::vector<Site> generate_random_sites(pmp::SurfaceMesh &mesh, int amount)
     while (selected < amount)
     {
         auto face = helpers::pick_random_face(mesh);
+        if (is_site[face])
+        {
+            continue;
+        }
         is_site[face] = true;
         // calculate center of face
         pmp::vec3 centroid = pmp::centroid(mesh, face);

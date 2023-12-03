@@ -42,7 +42,6 @@ std::vector<Site> generate_new_sites(pmp::SurfaceMesh &mesh,
     for (auto &site : old_sites)
     {
         auto meshlet = cluster[site.id].get();
-        is_site[site.face] = false;
 
         // create point cloud containing meshlet face centroids
         std::vector<float> points_x;
@@ -65,16 +64,18 @@ std::vector<Site> generate_new_sites(pmp::SurfaceMesh &mesh,
         pmp::Point meshlet_centroid = pmp::Point(median_x, median_y, median_z);
         pmp::Face new_site_face =
             find_closest_triangle(mesh, *meshlet, meshlet_centroid);
-        is_site[new_site_face] = true;
-
-        auto normal = pmp::face_normal(mesh, new_site_face);
-        auto position = pmp::centroid(mesh, new_site_face);
-
-        new_sites[site.id] = Site(site.id, new_site_face, position, normal);
 
         if (new_site_face != site.face)
         {
+            auto normal = pmp::face_normal(mesh, new_site_face);
+            auto position = pmp::centroid(mesh, new_site_face);
+
+            new_sites[site.id] = Site(site.id, new_site_face, position, normal);
             center_triangle_changed_count++;
+        }
+        else
+        {
+            new_sites[site.id] = site;
         }
     }
 
@@ -82,6 +83,17 @@ std::vector<Site> generate_new_sites(pmp::SurfaceMesh &mesh,
     {
         return std::vector<Site>();
     }
+
+    // change face properties at last
+    for (auto &site : old_sites)
+    {
+        is_site[site.face] = false;
+    }
+    for (auto &site : new_sites)
+    {
+        is_site[site.face] = true;
+    }
+
     return new_sites;
 }
 
