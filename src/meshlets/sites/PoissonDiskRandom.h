@@ -8,7 +8,7 @@
 
 namespace meshlets {
 /**
- * @brief calculate whether a site is valid
+ * @brief calculate whether a site is valid (based on the distance to other sites)
  * 
  * @param mesh The mesh to check the site on
  * @param sites The sites to check the site against

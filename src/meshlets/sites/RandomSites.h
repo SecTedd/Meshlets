@@ -8,7 +8,7 @@
 
 namespace meshlets {
 /**
- * @brief generate random sites on a mesh
+ * @brief generate random sites on a mesh (without any checks on distance or anything)
  * 
  * @param mesh The mesh to generate the sites on
  * @param amount The amount of sites to generate
