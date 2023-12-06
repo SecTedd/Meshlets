@@ -121,6 +121,8 @@ ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
         }
         current_iteration++;
     }
+    // grow sites one last time
+    cluster_and_sites.cluster = grow_sites(mesh, cluster_and_sites.sites);
     std::cout << "Lloyd made " << current_iteration << " iterations ";
     return cluster_and_sites;
 }
