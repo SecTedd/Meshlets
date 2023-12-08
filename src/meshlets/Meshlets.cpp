@@ -223,70 +223,80 @@ void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
         {
             auto faces = get_faces(*meshlet);
             auto site_face = get_site_face(*meshlet);
+            auto connected_faces = get_connected_faces(mesh, site_face);
 
-            for (auto &face : faces)
+            if (connected_faces.size() != faces.size() - 1)
             {
-                if (is_site[face])
+                // meshlet is invalid
+                for (auto &face : faces)
                 {
-                    continue;
-                }
-
-                if (!is_connected_via_edges(mesh, face, site_face))
-                {
-                    // Majority vote
-                    std::unordered_map<int, int> closest_site_count;
-                    for (auto &adjacent_face : get_adjacent_faces(mesh, face))
+                    if (is_site[face])
                     {
-                        if (is_site[adjacent_face] ||
-                            closest_site[adjacent_face] == closest_site[face])
+                        continue;
+                    }
+
+                    if (connected_faces.find(face) == connected_faces.end())
+                    {
+                        // Majority vote
+                        std::map<int, int> closest_site_count;
+                        for (auto &adjacent_face :
+                             get_adjacent_faces(mesh, face))
                         {
-                            continue;
+                            if (is_site[adjacent_face] ||
+                                closest_site[adjacent_face] ==
+                                    closest_site[face])
+                            {
+                                continue;
+                            }
+                            if (closest_site_count.find(
+                                    closest_site[adjacent_face]) ==
+                                closest_site_count.end())
+                            {
+                                closest_site_count
+                                    [closest_site[adjacent_face]] = 1;
+                            }
+                            else
+                            {
+                                closest_site_count
+                                    [closest_site[adjacent_face]]++;
+                            }
                         }
-                        if (closest_site_count.find(
-                                closest_site[adjacent_face]) ==
-                            closest_site_count.end())
+                        // if face is not surrounded by faces of the same meshlet
+                        if (closest_site_count.size() > 0)
                         {
-                            closest_site_count[closest_site[adjacent_face]] = 1;
+                            int max_count = 0;
+                            int max_count_site_id = -1;
+                            for (auto &pair : closest_site_count)
+                            {
+                                if (pair.second > max_count)
+                                {
+                                    max_count = pair.second;
+                                    max_count_site_id = pair.first;
+                                }
+                            }
+                            auto new_meshlet = cluster[max_count_site_id];
+                            auto old_meshlet = cluster[closest_site[face]];
+                            // remove face from old site
+                            old_meshlet->at(added_in_iteration[face])
+                                ->erase(
+                                    std::remove(
+                                        meshlet->at(added_in_iteration[face])
+                                            ->begin(),
+                                        meshlet->at(added_in_iteration[face])
+                                            ->end(),
+                                        face),
+                                    meshlet->at(added_in_iteration[face])
+                                        ->end());
+                            // add face to new site (for now it keeps the iteration number)
+
+                            new_meshlet->at(added_in_iteration[face])
+                                ->push_back(face);
+                            closest_site[face] = max_count_site_id;
                         }
                         else
                         {
-                            closest_site_count[closest_site[adjacent_face]]++;
+                            unchanged_faces++;
                         }
-                    }
-                    // if face is not surrounded by faces of the same meshlet
-                    if (closest_site_count.size() > 0)
-                    {
-                        int max_count = 0;
-                        int max_count_site_id = -1;
-                        for (auto &pair : closest_site_count)
-                        {
-                            if (pair.second > max_count)
-                            {
-                                max_count = pair.second;
-                                max_count_site_id = pair.first;
-                            }
-                        }
-                        auto new_meshlet = cluster[max_count_site_id];
-                        auto old_meshlet = cluster[closest_site[face]];
-                        // remove face from old site
-                        old_meshlet->at(added_in_iteration[face])
-                            ->erase(
-                                std::remove(
-                                    meshlet->at(added_in_iteration[face])
-                                        ->begin(),
-                                    meshlet->at(added_in_iteration[face])
-                                        ->end(),
-                                    face),
-                                meshlet->at(added_in_iteration[face])->end());
-                        // add face to new site (for now it keeps the iteration number)
-
-                        new_meshlet->at(added_in_iteration[face])
-                            ->push_back(face);
-                        closest_site[face] = max_count_site_id;
-                    }
-                    else
-                    {
-                        unchanged_faces++;
                     }
                 }
             }
