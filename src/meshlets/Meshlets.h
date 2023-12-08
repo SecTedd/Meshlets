@@ -94,6 +94,14 @@ float evaluate_clustering(Cluster &cluster);
 pmp::Face get_site_face(Meshlet &meshlet);
 
 /**
+ * @brief helper function to get the meshlet id of a meshlet given the site_face
+ * 
+ * @param mesh the mesh on which the meshlet is located
+ * @param site_face the site_face of the meshlet
+*/
+int get_meshlet_id(pmp::SurfaceMesh &mesh, pmp::Face &site_face);
+
+/**
  * @brief check if the cluster data structure is consistent to the mesh face properties
  * 
  * @param mesh the mesh on which the cluster is located

@@ -49,6 +49,26 @@ std::vector<pmp::Face> get_adjacent_faces(pmp::SurfaceMesh &mesh,
     return adjacent_faces;
 }
 
+int get_meshlet_id(pmp::SurfaceMesh &mesh, pmp::Face &site_face)
+{
+    auto closest_site = mesh.get_face_property<int>("f:closest_site");
+    assert(closest_site);
+
+    int meshlet_id = -1;
+    for (auto &face : get_adjacent_faces(mesh, site_face))
+    {
+        if (meshlet_id == -1)
+        {
+            meshlet_id = closest_site[face];
+        }
+        else if (meshlet_id != closest_site[face])
+        {
+            return -1;
+        }
+    }
+    return meshlet_id;
+}
+
 // helper function to find out whether start is connected to end via a path
 // only containing faaces of the same meshlet
 bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
@@ -82,7 +102,7 @@ bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
                     end_found = true;
                     break;
                 }
-                // prune pahts that contain faces of other meshlets
+                // prune paths that contain faces of other meshlets
                 if (closest_site[adjacent_face] != id_to_match)
                 {
                     continue;
@@ -105,6 +125,46 @@ bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
     return end_found;
 }
 
+// helper function that returns all faces that are connected to the site face via edges
+std::map<pmp::Face, bool> get_connected_faces(pmp::SurfaceMesh &mesh,
+                                              pmp::Face &site_face)
+{
+    auto closest_site = mesh.get_face_property<int>("f:closest_site");
+    assert(closest_site);
+
+    std::map<pmp::Face, bool> connected_faces_map;
+    std::vector<pmp::Face> faces_to_visit;
+    faces_to_visit.push_back(site_face);
+
+    int site_face_id = get_meshlet_id(mesh, site_face);
+
+    while (faces_to_visit.size() > 0)
+    {
+        std::vector<pmp::Face> faces_to_visit_next;
+
+        for (auto &face : faces_to_visit)
+        {
+            for (auto &adjacent_face : get_adjacent_faces(mesh, face))
+            {
+                // prune paths that contain faces of other meshlets
+                if (closest_site[adjacent_face] != site_face_id)
+                {
+                    continue;
+                }
+                if (connected_faces_map.find(adjacent_face) ==
+                    connected_faces_map.end())
+                {
+                    connected_faces_map[adjacent_face] = true;
+                    faces_to_visit_next.push_back(adjacent_face);
+                }
+            }
+        }
+        faces_to_visit = faces_to_visit_next;
+    }
+
+    return connected_faces_map;
+}
+
 bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet)
 {
     auto is_site = mesh.get_face_property<bool>("f:is_site");
@@ -112,25 +172,14 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet)
     assert(is_site);
     assert(closest_site);
 
-    bool rule_1_and_2 = true;
-
     auto faces = get_faces(meshlet);
+    auto site_face = get_site_face(meshlet);
+    auto connected_faces = get_connected_faces(mesh, site_face);
 
-    for (auto &face : faces)
-    {
-        if (is_site[face])
-        {
-            continue;
-        }
-
-        // rule 1 and 2
-        auto site_face = get_site_face(meshlet);
-        rule_1_and_2 = is_connected_via_edges(mesh, face, site_face);
-        if (!rule_1_and_2)
-        {
-            break;
-        }
-    }
+    // rule 1 and 2
+    bool rule_1_and_2 =
+        connected_faces.size() ==
+        faces.size() - 1; // -1 because site face is not connected to itself
 
     // rule 3
     bool rule_3 = true;
