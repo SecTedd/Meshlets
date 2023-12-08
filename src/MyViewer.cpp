@@ -157,6 +157,7 @@ void MyViewer::process_imgui()
             meshlets::Cluster cluster_with_only_invalid_meshlets;
             cluster_with_only_invalid_meshlets.reserve(total);
 
+            auto now = std::chrono::high_resolution_clock::now();
             for (auto &meshlet : cluster_and_sites.cluster)
             {
                 if (meshlets::is_valid(mesh_, *meshlet))
@@ -169,6 +170,11 @@ void MyViewer::process_imgui()
                         std::make_shared<meshlets::Meshlet>(*meshlet));
                 }
             }
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - now;
+            std::clog << "Validating Meshlets took: " << elapsed.count()
+                      << std::endl;
+
             std::cout << "Valid Meshlets: " << num_valid << "/" << total << " ("
                       << ((float)num_valid / (float)total) * 100 << "%)"
                       << std::endl;
@@ -179,6 +185,48 @@ void MyViewer::process_imgui()
             renderer_.set_shininess(0);
             renderer_.set_specular(0);
             renderer_.set_diffuse(0);
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Validate and Fix Meshlets"))
+        {
+            if (cluster_and_sites.cluster.empty())
+            {
+                std::cerr << "Clustering not computed yet" << std::endl;
+                return;
+            }
+
+            // First check wheter all faces are assigned to a meshlet
+            auto is_site = mesh_.get_face_property<bool>("f:is_site");
+            auto closest_site = mesh_.get_face_property<int>("f:closest_site");
+            assert(is_site);
+            assert(closest_site);
+
+            for (auto face : mesh_.faces())
+            {
+                if (is_site[face])
+                {
+                    continue;
+                }
+                if (closest_site[face] == -1)
+                {
+                    std::cerr << "Face " << face.idx()
+                              << " is not assigned to a meshlet" << std::endl;
+                    std::clog << "Face " << face.idx()
+                              << " is_site: " << is_site[face]
+                              << " closest_site: " << closest_site[face]
+                              << std::endl;
+                    return;
+                }
+            }
+            auto now = std::chrono::high_resolution_clock::now();
+            meshlets::validate_and_fix_meshlets(
+                mesh_, cluster_and_sites.cluster);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - now;
+            std::cout << "Validating and Fixing Meshlets took: "
+                      << elapsed.count() << std::endl;
         }
     }
 

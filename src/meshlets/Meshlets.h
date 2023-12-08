@@ -77,7 +77,7 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet);
  * 
  * @param cluster the cluster to check and fix
 */
-void validate_and_fix_meshlets(Cluster &cluster);
+void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster);
 
 /**
  * @brief evaluates a clustering based on certain criteria and returns a score (score is not bounded)

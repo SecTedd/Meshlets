@@ -1,3 +1,5 @@
+#include <future>
+#include <mutex>
 #include <map>
 #include "Meshlets.h"
 #include "./sites/PoissonDiskRandom.h"
@@ -152,8 +154,96 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet)
     return rule_1_and_2 && rule_3 && rule_4;
 }
 
-// TODO
-void validate_and_fix_meshlets(Cluster &cluster) {}
+void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
+{
+    auto is_site = mesh.get_face_property<bool>("f:is_site");
+    auto closest_site = mesh.get_face_property<int>("f:closest_site");
+    auto added_in_iteration =
+        mesh.get_face_property<int>("f:added_in_iteration");
+    assert(is_site);
+    assert(closest_site);
+    assert(added_in_iteration);
+
+    int unchanged_faces = 1;
+
+    while (unchanged_faces > 0)
+    {
+        unchanged_faces = 0;
+
+        for (auto &meshlet : cluster)
+        {
+            auto faces = get_faces(*meshlet);
+            auto site_face = get_site_face(*meshlet);
+
+            for (auto &face : faces)
+            {
+                if (is_site[face])
+                {
+                    continue;
+                }
+
+                if (!is_connected_via_edges(mesh, face, site_face))
+                {
+                    // Majority vote
+                    std::unordered_map<int, int> closest_site_count;
+                    for (auto &adjacent_face : get_adjacent_faces(mesh, face))
+                    {
+                        if (is_site[adjacent_face] ||
+                            closest_site[adjacent_face] == closest_site[face])
+                        {
+                            continue;
+                        }
+                        if (closest_site_count.find(
+                                closest_site[adjacent_face]) ==
+                            closest_site_count.end())
+                        {
+                            closest_site_count[closest_site[adjacent_face]] = 1;
+                        }
+                        else
+                        {
+                            closest_site_count[closest_site[adjacent_face]]++;
+                        }
+                    }
+                    // if face is not surrounded by faces of the same meshlet
+                    if (closest_site_count.size() > 0)
+                    {
+                        int max_count = 0;
+                        int max_count_site_id = -1;
+                        for (auto &pair : closest_site_count)
+                        {
+                            if (pair.second > max_count)
+                            {
+                                max_count = pair.second;
+                                max_count_site_id = pair.first;
+                            }
+                        }
+                        auto new_meshlet = cluster[max_count_site_id];
+                        auto old_meshlet = cluster[closest_site[face]];
+                        // remove face from old site
+                        old_meshlet->at(added_in_iteration[face])
+                            ->erase(
+                                std::remove(
+                                    meshlet->at(added_in_iteration[face])
+                                        ->begin(),
+                                    meshlet->at(added_in_iteration[face])
+                                        ->end(),
+                                    face),
+                                meshlet->at(added_in_iteration[face])->end());
+                        // add face to new site (for now it keeps the iteration number)
+
+                        new_meshlet->at(added_in_iteration[face])
+                            ->push_back(face);
+                        closest_site[face] = max_count_site_id;
+                    }
+                    else
+                    {
+                        unchanged_faces++;
+                    }
+                }
+            }
+        }
+    }
+}
 
 // TODO
 float evaluate_clustering(Cluster &cluster)
