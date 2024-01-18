@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <memory>
 #include <pmp/visualization/mesh_viewer.h>
 #include "meshlets/Meshlets.h"
 #include "meshlets/sites/PoissonDiskRandom.h"
@@ -55,10 +56,14 @@ public:
         std::cerr.rdbuf(&imguiBuffer);
     }
 
+    // calculates the camera position from the inverse modelview matrix
+    pmp::vec3 get_camera_position();
+
 protected:
     // this function handles keyboard events
     void keyboard(int key, int code, int action, int mod) override;
     void process_imgui() override;
+    void scroll(double xoffset, double yoffset) override;
 
 private:
     // the clustering and sites data structure
@@ -67,4 +72,7 @@ private:
     std::string info_text = "Welcome to the Meshlet Viewer!";
     // the stream buffer to update the info text in ImGui
     ImGuiStreamBuffer imguiBuffer;
+    // boolean flag to indicate if LOD pipeline is enabled
+    bool lod_enabled = false;
+    meshlets::TreeNode lod_tree;
 };

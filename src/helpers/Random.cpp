@@ -3,34 +3,20 @@
 namespace helpers {
 pmp::Face pick_random_face(pmp::SurfaceMesh &mesh)
 {
+    std::vector<pmp::Face> faces_to_consider(mesh.faces_begin(),
+                                             mesh.faces_end());
+    return pick_random_face(mesh, faces_to_consider);
+}
+
+pmp::Face pick_random_face(pmp::SurfaceMesh &mesh,
+                           std::vector<pmp::Face> &faces_to_consider)
+{
     std::mt19937 gen(
         std::chrono::system_clock::now().time_since_epoch().count());
-    std::uniform_int_distribution<> dis(0, mesh.n_faces() - 1);
+    std::uniform_int_distribution<> dis(0, faces_to_consider.size() - 1);
     int random_face_index = dis(gen);
-    auto begin = mesh.faces_begin();
+    auto begin = faces_to_consider.begin();
     std::advance(begin, random_face_index);
-    return *begin;
-}
-
-pmp::Vertex pick_random_vertex(pmp::SurfaceMesh &mesh)
-{
-    std::mt19937 gen(
-        std::chrono::system_clock::now().time_since_epoch().count());
-    std::uniform_int_distribution<> dis(0, mesh.n_vertices() - 1);
-    int random_vertex_index = dis(gen);
-    auto begin = mesh.vertices_begin();
-    std::advance(begin, random_vertex_index);
-    return *begin;
-}
-
-pmp::Edge pick_random_edge(pmp::SurfaceMesh &mesh)
-{
-    std::mt19937 gen(
-        std::chrono::system_clock::now().time_since_epoch().count());
-    std::uniform_int_distribution<> dis(0, mesh.n_edges() - 1);
-    int random_edge_index = dis(gen);
-    auto begin = mesh.edges_begin();
-    std::advance(begin, random_edge_index);
     return *begin;
 }
 

@@ -5,12 +5,12 @@
 #include "meshlets/sites/PoissonDiskRandom.h"
 #include "meshlets/sites/RandomSites.h"
 #include "meshlets/visualization/ShowSites.h"
-#include "meshlets/io/WriteSites.h"
 #include "meshlets/clustering/GrowSites.h"
 #include "meshlets/clustering/BruteForceClustering.h"
 #include "meshlets/clustering/Lloyd.h"
 #include "meshlets/visualization/ShowMeshlets.h"
 #include "meshlets/visualization/ShowSites.h"
+#include "meshlets/LOD/LOD.h"
 
 #include <imgui.h>
 
@@ -27,6 +27,24 @@ void MyViewer::keyboard(int key, int scancode, int action, int mods)
             pmp::MeshViewer::keyboard(key, scancode, action, mods);
             break;
         }
+    }
+}
+
+pmp::vec3 MyViewer::get_camera_position()
+{
+    pmp::mat4 inverse_mw = pmp::inverse<float>(modelview_matrix_);
+    return pmp::vec3(inverse_mw(0, 3), inverse_mw(1, 3), inverse_mw(2, 3));
+}
+
+void MyViewer::scroll(double xoffset, double yoffset)
+{
+    pmp::MeshViewer::scroll(xoffset, yoffset);
+    if (lod_enabled)
+    {
+        // custom scroll event handling
+        auto camera_position = get_camera_position();
+        meshlets::color_lod(mesh_, lod_tree, camera_position);
+        update_mesh();
     }
 }
 
@@ -56,11 +74,17 @@ void MyViewer::process_imgui()
     ImGui::Spacing();
     ImGui::Spacing();
 
-    if (ImGui::CollapsingHeader("Mesh Properties"),
-        ImGuiTreeNodeFlags_DefaultOpen)
+    if (ImGui::CollapsingHeader("Mesh Properties"))
     {
         if (ImGui::Button("Check Clustering/Property Consistency"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.cluster.empty())
             {
                 std::cerr << "Clustering not computed yet" << std::endl;
@@ -87,6 +111,12 @@ void MyViewer::process_imgui()
     {
         if (ImGui::Button("Show Sites"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
             if (cluster_and_sites.sites.empty())
             {
                 std::cerr << "No sites generated yet" << std::endl;
@@ -104,6 +134,12 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Show Meshlets"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
             if (cluster_and_sites.cluster.empty())
             {
                 std::cerr << "Clustering not computed yet" << std::endl;
@@ -121,6 +157,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Validate Meshlets"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.cluster.empty())
             {
                 std::cerr << "Clustering not computed yet" << std::endl;
@@ -191,6 +234,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Validate and Fix Meshlets"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.cluster.empty())
             {
                 std::cerr << "Clustering not computed yet" << std::endl;
@@ -221,8 +271,8 @@ void MyViewer::process_imgui()
                 }
             }
             auto now = std::chrono::high_resolution_clock::now();
-            meshlets::validate_and_fix_meshlets(
-                mesh_, cluster_and_sites.cluster);
+            meshlets::validate_and_fix_meshlets(mesh_,
+                                                cluster_and_sites.cluster);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - now;
             std::cout << "Validating and Fixing Meshlets took: "
@@ -237,13 +287,20 @@ void MyViewer::process_imgui()
     {
         static int num_sites = mesh_.n_faces() * 0.005;
         int min = mesh_.n_faces() * 0.001;
-        int max = mesh_.n_faces() * 0.01;
+        int max = mesh_.n_faces() * 0.02;
         ImGui::SliderInt("Number of Sites", &num_sites, min, max, "%d");
 
         ImGui::Spacing();
 
         if (ImGui::Button("Generate PDS Sites"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             auto start = std::chrono::high_resolution_clock::now();
             cluster_and_sites.sites =
                 meshlets::generate_pds_sites(mesh_, num_sites);
@@ -256,6 +313,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Generate Random Sites"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             auto start = std::chrono::high_resolution_clock::now();
             cluster_and_sites.sites =
                 meshlets::generate_random_sites(mesh_, num_sites);
@@ -273,6 +337,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Grow Sites"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.sites.empty())
             {
                 std::cerr << "No sites generated. Please generate sites first."
@@ -292,6 +363,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Brute Force Clustering"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.sites.empty())
             {
                 std::cerr << "No sites generated. Please generate sites first."
@@ -317,6 +395,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Lloyd"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.sites.empty())
             {
                 std::cerr << "No sites generated. Please generate sites first."
@@ -328,7 +413,7 @@ void MyViewer::process_imgui()
                                                 max_lloyd_iterations);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = (end - start);
-            std::cout << "and took: " << elapsed.count() << " s\n";
+            std::cout << "Lloyd Relaxation took: " << elapsed.count() << " s\n";
         }
     }
 
@@ -342,6 +427,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Benchmark GS-Clustering"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.sites.empty())
             {
                 std::cerr << "No sites generated. Please generate sites first."
@@ -365,6 +457,13 @@ void MyViewer::process_imgui()
 
         if (ImGui::Button("Benchmark BF-Clustering"))
         {
+            if (lod_enabled)
+            {
+                std::cerr << "LOD is enabled. Please disable LOD first."
+                          << std::endl;
+                return;
+            }
+
             if (cluster_and_sites.sites.empty())
             {
                 std::cerr << "No sites generated. Please generate sites first."
@@ -388,12 +487,83 @@ void MyViewer::process_imgui()
     ImGui::Spacing();
     ImGui::Spacing();
 
-    if (ImGui::CollapsingHeader("IO"))
+    if (ImGui::CollapsingHeader("LOD"))
     {
-        if (ImGui::Button("Save Mesh"))
+        static int num_sites = mesh_.n_faces() * 0.005;
+        int min_sites = mesh_.n_faces() * 0.001;
+        int max_sites = mesh_.n_faces() * 0.005;
+        ImGui::SliderInt("Number of Sites for first Level", &num_sites,
+                         min_sites, max_sites, "%d");
+
+        static int num_levels = 3;
+        int min_levels = 1;
+        int max_levels = 5;
+        ImGui::SliderInt("Number of Levels for LOD Tree", &num_levels,
+                         min_levels, max_levels, "%d");
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Toggle LOD"))
         {
-            std::string filename = "output.off";
-            meshlets::write_sites(mesh_, filename);
+            // delete old meshlets and sites because they break
+            cluster_and_sites.cluster.clear();
+            cluster_and_sites.sites.clear();
+
+            if (lod_enabled)
+            {
+                lod_enabled = false;
+                lod_tree = meshlets::TreeNode();
+                std::cout << "LOD disabled" << std::endl;
+            }
+            else
+            {
+                auto start = std::chrono::high_resolution_clock::now();
+                lod_tree =
+                    meshlets::build_lod_tree(mesh_, num_levels, num_sites);
+                auto end = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> elapsed = end - start;
+                std::clog << "Building LOD Tree took: " << elapsed.count()
+                          << " s" << std::endl;
+                // check if lod_tree is valid
+                if (lod_tree.children->size() == 0)
+                {
+                    std::cout << "Tree-Nodes are too small, please try another "
+                                 "parameter configuration"
+                              << std::endl;
+                    lod_enabled = false;
+                }
+                else
+                {
+                    std::cout << "LOD enabled" << std::endl;
+                    lod_enabled = true;
+                }
+            }
+        }
+
+        ImGui::Spacing();
+
+        static int level = 2;
+        int min_level = 0;
+        int max_level = 4;
+        ImGui::SliderInt("Level to show (start at 0)", &level, min_level,
+                         max_level, "%d");
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Show Level"))
+        {
+            if (!lod_enabled)
+            {
+                std::cerr << "LOD is not enabled. Please enable LOD first."
+                          << std::endl;
+                return;
+            }
+            meshlets::color_level(mesh_, lod_tree, level);
+            update_mesh();
+            set_draw_mode("Smooth Shading");
+            renderer_.set_shininess(0);
+            renderer_.set_specular(0);
+            renderer_.set_diffuse(0);
         }
     }
 

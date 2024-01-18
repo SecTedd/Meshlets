@@ -5,7 +5,7 @@
 
 int main(int argc, char **argv)
 {
-    MyViewer window("MyViewer", 1200, 1000);
+    MyViewer window("Meshlet Viewer", 1200, 1000);
 
     if (argc == 2)
         window.load_mesh(argv[1]);

@@ -4,6 +4,7 @@
 #include "../helpers/Random.h"
 
 #include <iostream>
+#include <memory>
 #include <vector>
 
 namespace meshlets {
@@ -54,11 +55,30 @@ typedef struct ClusterAndSites
 } ClusterAndSites;
 
 /**
+ * @brief The TreeNode data structure is used to build a tree of meshlets (needed for LOD).
+*/
+typedef struct TreeNode
+{
+    std::shared_ptr<std::vector<TreeNode>> children;
+    std::shared_ptr<std::vector<pmp::Face>> faces;
+    int level;
+} TreeNode;
+
+/**
  * @brief helper function to get all the faces of a meshlet in a flat vector
  * 
  * @param meshlet the meshlet to get the faces from
 */
 std::vector<pmp::Face> get_faces(Meshlet &meshlet);
+
+/**
+ * @brief helper function to get all 3 adjacent faces of a face
+ * 
+ * @param mesh the mesh on which the face is located
+ * @param face the face to get the adjacent faces from
+*/
+std::vector<pmp::Face> get_adjacent_faces(pmp::SurfaceMesh &mesh,
+                                          pmp::Face &face);
 
 /**
  * @brief check if the meshlet is valid according to the following rules:
@@ -75,9 +95,20 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet);
 /**
  * @brief checks for each meshlet in the cluster if it's valid and performs a fix if not
  * 
+ * @param mesh the mesh on which the cluster is located
  * @param cluster the cluster to check and fix
 */
 void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster);
+
+/**
+ * @brief checks for each meshlet in the cluster if it's valid and performs a fix if not
+ * 
+ * @param mesh the mesh on which the cluster is located
+ * @param cluster the cluster to check and fix
+ * @param faces_to_consider the faces that were considered during clustering
+*/
+void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster,
+                               std::vector<pmp::Face> &faces_to_consider);
 
 /**
  * @brief evaluates a clustering based on certain criteria and returns a score (score is not bounded)

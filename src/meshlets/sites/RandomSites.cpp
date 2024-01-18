@@ -3,6 +3,15 @@
 namespace meshlets {
 std::vector<Site> generate_random_sites(pmp::SurfaceMesh &mesh, int amount)
 {
+    std::vector<pmp::Face> faces_to_consider(mesh.faces_begin(),
+                                             mesh.faces_end());
+    return generate_random_sites(mesh, amount, faces_to_consider);
+}
+
+std::vector<Site> generate_random_sites(
+    pmp::SurfaceMesh &mesh, int amount,
+    std::vector<pmp::Face> &faces_to_consider)
+{
     std::vector<Site> sites(amount);
     int selected = 0;
 
@@ -15,7 +24,7 @@ std::vector<Site> generate_random_sites(pmp::SurfaceMesh &mesh, int amount)
     else
     {
         is_site = mesh.get_face_property<bool>("f:is_site");
-        for (auto face : mesh.faces())
+        for (auto face : faces_to_consider)
         {
             is_site[face] = false;
         }
@@ -23,7 +32,7 @@ std::vector<Site> generate_random_sites(pmp::SurfaceMesh &mesh, int amount)
 
     while (selected < amount)
     {
-        auto face = helpers::pick_random_face(mesh);
+        auto face = helpers::pick_random_face(mesh, faces_to_consider);
         if (is_site[face])
         {
             continue;

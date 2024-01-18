@@ -100,6 +100,15 @@ std::vector<Site> generate_new_sites(pmp::SurfaceMesh &mesh,
 ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
                       int max_iterations)
 {
+    std::vector<pmp::Face> faces_to_consider(mesh.faces_begin(),
+                                             mesh.faces_end());
+    return lloyd(mesh, init_sites, faces_to_consider, max_iterations);
+}
+
+ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
+                      std::vector<pmp::Face> &faces_to_consider,
+                      int max_iterations)
+{
     ClusterAndSites cluster_and_sites;
     cluster_and_sites.sites = init_sites;
     int current_iteration = 0;
@@ -107,7 +116,8 @@ ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
     while (current_iteration < max_iterations)
     {
         // grow sites
-        cluster_and_sites.cluster = grow_sites(mesh, cluster_and_sites.sites);
+        cluster_and_sites.cluster =
+            grow_sites(mesh, cluster_and_sites.sites, faces_to_consider);
         // update sites and check for stopping criterion
         auto new_sites = generate_new_sites(mesh, cluster_and_sites.sites,
                                             cluster_and_sites.cluster);
@@ -122,8 +132,10 @@ ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
         current_iteration++;
     }
     // grow sites one last time
-    cluster_and_sites.cluster = grow_sites(mesh, cluster_and_sites.sites);
-    std::cout << "Lloyd made " << current_iteration << " iterations ";
+    cluster_and_sites.cluster =
+        grow_sites(mesh, cluster_and_sites.sites, faces_to_consider);
+    // std::clog << "Lloyd made " << current_iteration << " iterations"
+    //           << std::endl;
     return cluster_and_sites;
 }
 } // namespace meshlets

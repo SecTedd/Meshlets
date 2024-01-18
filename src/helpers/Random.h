@@ -14,18 +14,13 @@ namespace helpers {
 pmp::Face pick_random_face(pmp::SurfaceMesh &mesh);
 
 /**
- * @brief Pick a random vertex from the mesh
+ * @brief Pick a random face from the mesh
  *
- * @param mesh The mesh to pick a vertex from
+ * @param mesh The mesh to pick a face from
+ * @param faces_to_consider Faces to consider when picking a random face
 */
-pmp::Vertex pick_random_vertex(pmp::SurfaceMesh &mesh);
-
-/**
- * @brief Pick a random edge from the mesh
- *
- * @param mesh The mesh to pick an edge from
-*/
-pmp::Edge pick_random_edge(pmp::SurfaceMesh &mesh);
+pmp::Face pick_random_face(pmp::SurfaceMesh &mesh,
+                           std::vector<pmp::Face> &faces_to_consider);
 
 /**
  * @brief generate a random color

@@ -28,7 +28,6 @@ pmp::Face get_site_face(Meshlet &meshlet)
     return meshlet.at(0)->at(0);
 }
 
-// helper function to get the 3 adjacent faces of a face
 std::vector<pmp::Face> get_adjacent_faces(pmp::SurfaceMesh &mesh,
                                           pmp::Face &face)
 {
@@ -84,7 +83,7 @@ bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
 
     int id_to_match = closest_site[start];
 
-    std::map<pmp::Face, bool> visited_faces_map;
+    std::unordered_map<pmp::IndexType, bool> visited_faces_map;
     std::vector<pmp::Face> faces_to_visit;
     faces_to_visit.push_back(start);
 
@@ -107,7 +106,7 @@ bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
                 {
                     continue;
                 }
-                if (visited_faces_map.find(adjacent_face) ==
+                if (visited_faces_map.find(adjacent_face.idx()) ==
                     visited_faces_map.end())
                 {
                     visited_faces.push_back(adjacent_face);
@@ -117,7 +116,7 @@ bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
         }
         for (auto &face : visited_faces)
         {
-            visited_faces_map[face] = true;
+            visited_faces_map[face.idx()] = true;
         }
         faces_to_visit = faces_to_visit_next;
     }
@@ -126,13 +125,13 @@ bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
 }
 
 // helper function that returns all faces that are connected to the site face via edges
-std::map<pmp::Face, bool> get_connected_faces(pmp::SurfaceMesh &mesh,
-                                              pmp::Face &site_face)
+std::unordered_map<pmp::IndexType, bool> get_connected_faces(
+    pmp::SurfaceMesh &mesh, pmp::Face &site_face)
 {
     auto closest_site = mesh.get_face_property<int>("f:closest_site");
     assert(closest_site);
 
-    std::map<pmp::Face, bool> connected_faces_map;
+    std::unordered_map<pmp::IndexType, bool> connected_faces_map;
     std::vector<pmp::Face> faces_to_visit;
     faces_to_visit.push_back(site_face);
 
@@ -151,10 +150,10 @@ std::map<pmp::Face, bool> get_connected_faces(pmp::SurfaceMesh &mesh,
                 {
                     continue;
                 }
-                if (connected_faces_map.find(adjacent_face) ==
+                if (connected_faces_map.find(adjacent_face.idx()) ==
                     connected_faces_map.end())
                 {
-                    connected_faces_map[adjacent_face] = true;
+                    connected_faces_map[adjacent_face.idx()] = true;
                     faces_to_visit_next.push_back(adjacent_face);
                 }
             }
@@ -175,6 +174,12 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet)
     auto faces = get_faces(meshlet);
     auto site_face = get_site_face(meshlet);
     auto connected_faces = get_connected_faces(mesh, site_face);
+
+    // if meshlet only consists of the site face, it is valid
+    if (faces.size() == 1 && faces[0] == site_face && is_site[site_face])
+    {
+        return true;
+    }
 
     // rule 1 and 2
     bool rule_1_and_2 =
@@ -205,6 +210,14 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet)
 
 void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
 {
+    std::vector<pmp::Face> faces_to_consider(mesh.faces_begin(),
+                                             mesh.faces_end());
+    validate_and_fix_meshlets(mesh, cluster, faces_to_consider);
+}
+
+void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster,
+                               std::vector<pmp::Face> &faces_to_consider)
+{
     auto is_site = mesh.get_face_property<bool>("f:is_site");
     auto closest_site = mesh.get_face_property<int>("f:closest_site");
     auto added_in_iteration =
@@ -213,9 +226,17 @@ void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
     assert(closest_site);
     assert(added_in_iteration);
 
+    // convert faces_to_consider to a hashmap
+    std::unordered_map<pmp::IndexType, bool> faces_to_consider_map;
+    for (auto face : faces_to_consider)
+    {
+        faces_to_consider_map[face.idx()] = true;
+    }
+    int max_num_dryruns = 5;
+    int current_num_dryruns = 0;
     int unchanged_faces = 1;
 
-    while (unchanged_faces > 0)
+    while (unchanged_faces > 0 && current_num_dryruns < max_num_dryruns)
     {
         unchanged_faces = 0;
 
@@ -235,16 +256,20 @@ void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
                         continue;
                     }
 
-                    if (connected_faces.find(face) == connected_faces.end())
+                    if (connected_faces.find(face.idx()) ==
+                        connected_faces.end())
                     {
                         // Majority vote
-                        std::map<int, int> closest_site_count;
+                        std::unordered_map<int, int> closest_site_count;
                         for (auto &adjacent_face :
                              get_adjacent_faces(mesh, face))
                         {
                             if (is_site[adjacent_face] ||
                                 closest_site[adjacent_face] ==
-                                    closest_site[face])
+                                    closest_site[face] ||
+                                faces_to_consider_map.find(
+                                    adjacent_face.idx()) ==
+                                    faces_to_consider_map.end())
                             {
                                 continue;
                             }
@@ -292,22 +317,18 @@ void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
                             new_meshlet->at(added_in_iteration[face])
                                 ->push_back(face);
                             closest_site[face] = max_count_site_id;
+                            current_num_dryruns = 0;
                         }
                         else
                         {
                             unchanged_faces++;
+                            current_num_dryruns++;
                         }
                     }
                 }
             }
         }
     }
-}
-
-// TODO
-float evaluate_clustering(Cluster &cluster)
-{
-    return 100.0f;
 }
 
 bool check_consistency(pmp::SurfaceMesh &mesh, Cluster &cluster)
@@ -320,7 +341,7 @@ bool check_consistency(pmp::SurfaceMesh &mesh, Cluster &cluster)
     assert(closest_site);
     assert(added_in_iteration);
 
-    std::map<pmp::Face, bool> seen_faces;
+    std::unordered_map<pmp::IndexType, bool> seen_faces;
 
     for (int site_id = 0; site_id < cluster.size(); site_id++)
     {
@@ -332,9 +353,9 @@ bool check_consistency(pmp::SurfaceMesh &mesh, Cluster &cluster)
             for (auto &face : *iteration)
             {
                 // check if faces occur multiple times, which means they are part of multiple meshlets
-                if (seen_faces.find(face) == seen_faces.end())
+                if (seen_faces.find(face.idx()) == seen_faces.end())
                 {
-                    seen_faces[face] = true;
+                    seen_faces[face.idx()] = true;
                 }
                 else
                 {

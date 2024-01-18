@@ -40,8 +40,8 @@ void color_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
             }
             if (site_id == -1)
             {
-                std::cerr << "WARNING: Face " << face.idx() << " has no closest site"
-                          << std::endl;
+                std::cerr << "WARNING: Face " << face.idx()
+                          << " has no closest site" << std::endl;
                 continue;
             }
             if (colors.find(site_id) == colors.end())

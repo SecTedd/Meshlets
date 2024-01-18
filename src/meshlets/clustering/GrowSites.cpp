@@ -1,3 +1,5 @@
+#include <map>
+
 #include "./GrowSites.h"
 #include "pmp/algorithms/differential_geometry.h"
 #include "pmp/algorithms/normals.h"
@@ -6,6 +8,15 @@
 namespace meshlets {
 
 Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
+                   int max_iterations)
+{
+    std::vector<pmp::Face> faces_to_consider(mesh.faces_begin(),
+                                             mesh.faces_end());
+    return grow_sites(mesh, sites, faces_to_consider, max_iterations);
+}
+
+Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
+                   std::vector<pmp::Face> &faces_to_consider,
                    int max_iterations)
 {
     // create a face property to store the closest site
@@ -52,6 +63,13 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
             visited_by[vertex] = -1;
         }
     }
+    // convert faces_to_consider to a hashmap
+    std::unordered_map<pmp::IndexType, bool> faces_to_consider_map;
+    for (auto face : faces_to_consider)
+    {
+        faces_to_consider_map[face.idx()] = true;
+    }
+
     // get face property indicating whether a face is a site (this is set in the site generation)
     pmp::FaceProperty<bool> is_site = mesh.get_face_property<bool>("f:is_site");
     assert(is_site);
@@ -114,6 +132,14 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                             // get the faces
                             for (auto f : mesh.faces(v))
                             {
+                                // check if the face is in faces_to_consider
+                                if (faces_to_consider_map.find(f.idx()) ==
+                                    faces_to_consider_map.end())
+                                {
+                                    // changed++;
+                                    continue;
+                                }
+
                                 if (!is_site[f] && closest_site[f] != site.id)
                                 {
                                     // face has no closest site yet
