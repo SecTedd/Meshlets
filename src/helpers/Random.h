@@ -26,4 +26,9 @@ pmp::Face pick_random_face(pmp::SurfaceMesh &mesh,
  * @brief generate a random color
 */
 pmp::Color generate_random_color();
+
+/**
+ * @brief generate a random id
+*/
+int generate_random_id();
 } // namespace helpers

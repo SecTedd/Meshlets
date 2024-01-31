@@ -59,10 +59,14 @@ typedef struct ClusterAndSites
 */
 typedef struct TreeNode
 {
+    int id;
+    pmp::Color color;
+    std::shared_ptr<TreeNode> parent;
     std::shared_ptr<std::vector<TreeNode>> children;
     std::shared_ptr<std::vector<pmp::Face>> faces;
     int level;
 } TreeNode;
+bool operator==(const TreeNode &lhs, const TreeNode &rhs);
 
 /**
  * @brief helper function to get all the faces of a meshlet in a flat vector

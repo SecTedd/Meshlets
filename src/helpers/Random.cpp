@@ -42,4 +42,13 @@ pmp::Color generate_random_color()
     }
     return color;
 }
+
+int generate_random_id()
+{
+    std::mt19937 gen(
+        std::chrono::system_clock::now().time_since_epoch().count());
+    std::uniform_int_distribution<> dis(0, INT32_MAX);
+
+    return dis(gen);
+}
 } // namespace helpers

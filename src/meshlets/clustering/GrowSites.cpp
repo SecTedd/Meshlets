@@ -136,7 +136,6 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                                 if (faces_to_consider_map.find(f.idx()) ==
                                     faces_to_consider_map.end())
                                 {
-                                    // changed++;
                                     continue;
                                 }
 

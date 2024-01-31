@@ -10,6 +10,11 @@
 #include <iostream>
 
 namespace meshlets {
+bool operator==(const TreeNode &lhs, const TreeNode &rhs)
+{
+    return lhs.id == rhs.id;
+}
+
 std::vector<pmp::Face> get_faces(Meshlet &meshlet)
 {
     std::vector<pmp::Face> faces;

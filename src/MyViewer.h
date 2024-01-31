@@ -64,6 +64,7 @@ protected:
     void keyboard(int key, int code, int action, int mod) override;
     void process_imgui() override;
     void scroll(double xoffset, double yoffset) override;
+    void motion(double xpos, double ypos) override;
 
 private:
     // the clustering and sites data structure
@@ -75,4 +76,8 @@ private:
     // boolean flag to indicate if LOD pipeline is enabled
     bool lod_enabled = false;
     meshlets::TreeNode lod_tree;
+    std::vector<meshlets::TreeNode> currently_visible_nodes;
+
+    // handles everything that happens when lod_enabled is set to true
+    void handle_lod();
 };

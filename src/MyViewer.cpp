@@ -36,15 +36,37 @@ pmp::vec3 MyViewer::get_camera_position()
     return pmp::vec3(inverse_mw(0, 3), inverse_mw(1, 3), inverse_mw(2, 3));
 }
 
+void MyViewer::handle_lod()
+{
+    auto camera_position = get_camera_position();
+    meshlets::color_lod(mesh_, lod_tree, camera_position,
+                        currently_visible_nodes);
+    update_mesh();
+}
+
 void MyViewer::scroll(double xoffset, double yoffset)
 {
     pmp::MeshViewer::scroll(xoffset, yoffset);
     if (lod_enabled)
     {
         // custom scroll event handling
-        auto camera_position = get_camera_position();
-        meshlets::color_lod(mesh_, lod_tree, camera_position);
-        update_mesh();
+        handle_lod();
+    }
+}
+
+void MyViewer::motion(double xpos, double ypos)
+{
+    pmp::MeshViewer::motion(xpos, ypos);
+    // if user is translating or rotation the camera
+    // logic coppied from pmp::TrackballViewer::motion
+    if (lod_enabled)
+    {
+        if ((middle_mouse_pressed() ||
+             (left_mouse_pressed() && alt_pressed())) ||
+            left_mouse_pressed())
+        {
+            handle_lod();
+        }
     }
 }
 
@@ -536,6 +558,18 @@ void MyViewer::process_imgui()
                 {
                     std::cout << "LOD enabled" << std::endl;
                     lod_enabled = true;
+                    set_draw_mode("Smooth Shading");
+                    renderer_.set_shininess(0);
+                    renderer_.set_specular(0);
+                    renderer_.set_diffuse(0);
+                    // fill initially visible nodes with highest level
+                    currently_visible_nodes =
+                        meshlets::get_nodes(lod_tree, 1);
+                    // color it
+                    auto camera_position = get_camera_position();
+                    meshlets::color_lod(mesh_, lod_tree, camera_position,
+                                        currently_visible_nodes);
+                    update_mesh();
                 }
             }
         }

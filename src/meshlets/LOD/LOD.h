@@ -4,6 +4,13 @@
 
 namespace meshlets {
 /**
+ * @brief Returns all nodes of a certain level of the tree.
+ * 
+ * @param root The root of the tree
+ * @param level The level to get the nodes from
+*/
+std::vector<TreeNode> get_nodes(TreeNode &root, int level);
+/**
  * @brief Generates a tree of meshlets (needed for LOD).
  * 
  * @param mesh The mesh to generate the tree on
@@ -31,5 +38,6 @@ void color_level(pmp::SurfaceMesh &mesh, TreeNode &root, int level);
  * @param camera_position The position of the camera
 */
 void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
-               pmp::vec3 &camera_position);
+               pmp::vec3 &camera_position,
+               std::vector<meshlets::TreeNode> &currently_visible_nodes);
 } // namespace meshlets
