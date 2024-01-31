@@ -151,9 +151,11 @@ void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
     {
         color = mesh.get_face_property<pmp::Color>("f:color");
     }
-    // ! maybe replace this with 0 0 0 since mesh is not moving
+
     auto distance_to_mesh_center =
         pmp::distance(camera_position, pmp::centroid(mesh));
+
+    auto mesh_bounds = pmp::bounds(mesh).size();
 
     std::vector<TreeNode> nodes_to_add;
     std::vector<TreeNode> nodes_to_remove;
@@ -169,7 +171,14 @@ void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
         auto distance_to_camera = pmp::distance(
             camera_position, pmp::centroid(mesh, node.faces->at(0)));
 
-        if (distance_to_camera >= distance_to_mesh_center)
+        auto angle_to_camera =
+            pmp::dot(pmp::normalize(pmp::face_normal(mesh, node.faces->at(0))),
+                     pmp::normalize(camera_position -
+                                    pmp::centroid(mesh, node.faces->at(0))));
+
+        if ((angle_to_camera < -0.25 &&
+             distance_to_camera > distance_to_mesh_center) ||
+            distance_to_camera > 2 * mesh_bounds)
         {
             // this is the coarsest level since its parent is the root (i.e. the whole mesh)
             if (node.level == 1)
@@ -187,7 +196,8 @@ void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
             // add the parent node
             nodes_to_add.push_back(*parent);
         }
-        else
+        else if (angle_to_camera > 0.25 &&
+                 distance_to_camera < distance_to_mesh_center)
         {
             auto children = node.children;
             // this is the finest level since it has no children
@@ -197,17 +207,13 @@ void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
             // invalidate the parent node
             invalid_nodes[node.id] = true;
             nodes_to_remove.push_back(node);
-            
+
             // add the children nodes
             nodes_to_add.insert(nodes_to_add.end(), children->begin(),
                                 children->end());
         }
     }
 
-    // std::clog << "currently visible nodes: " << currently_visible_nodes.size()
-    //           << std::endl;
-    // std::clog << "nodes to remove: " << nodes_to_remove.size() << std::endl;
-    // std::clog << "nodes to add: " << nodes_to_add.size() << std::endl;
     // update currently visible nodes
     for (auto node : nodes_to_remove)
     {
@@ -221,9 +227,6 @@ void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
     {
         currently_visible_nodes.push_back(node);
     }
-    // std::clog << "currently visible nodes: " << currently_visible_nodes.size()
-    //           << std::endl;
-    // std::clog << "==========================================" << std::endl;
 
     // color all nodes
     for (auto node : currently_visible_nodes)

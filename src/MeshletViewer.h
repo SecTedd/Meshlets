@@ -43,11 +43,11 @@ private:
 };
 // =======================================================================
 
-class MyViewer : public pmp::MeshViewer
+class MeshletViewer : public pmp::MeshViewer
 {
 public:
     // constructor
-    MyViewer(const char* title, int width, int height)
+    MeshletViewer(const char* title, int width, int height)
         : MeshViewer(title, width, height), imguiBuffer(info_text)
     {
         set_draw_mode("Smooth Shading");

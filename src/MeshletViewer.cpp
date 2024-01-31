@@ -1,7 +1,7 @@
 // Copyright 2011-2021 the Polygon Mesh Processing Library developers.
 // Distributed under a MIT-style license, see LICENSE.txt for details.
 
-#include "MyViewer.h"
+#include "MeshletViewer.h"
 #include "meshlets/sites/PoissonDiskRandom.h"
 #include "meshlets/sites/RandomSites.h"
 #include "meshlets/visualization/ShowSites.h"
@@ -14,7 +14,7 @@
 
 #include <imgui.h>
 
-void MyViewer::keyboard(int key, int scancode, int action, int mods)
+void MeshletViewer::keyboard(int key, int scancode, int action, int mods)
 {
     if (action != GLFW_PRESS) // only react on key press events
         return;
@@ -30,13 +30,13 @@ void MyViewer::keyboard(int key, int scancode, int action, int mods)
     }
 }
 
-pmp::vec3 MyViewer::get_camera_position()
+pmp::vec3 MeshletViewer::get_camera_position()
 {
     pmp::mat4 inverse_mw = pmp::inverse<float>(modelview_matrix_);
     return pmp::vec3(inverse_mw(0, 3), inverse_mw(1, 3), inverse_mw(2, 3));
 }
 
-void MyViewer::handle_lod()
+void MeshletViewer::handle_lod()
 {
     auto camera_position = get_camera_position();
     meshlets::color_lod(mesh_, lod_tree, camera_position,
@@ -44,7 +44,7 @@ void MyViewer::handle_lod()
     update_mesh();
 }
 
-void MyViewer::scroll(double xoffset, double yoffset)
+void MeshletViewer::scroll(double xoffset, double yoffset)
 {
     pmp::MeshViewer::scroll(xoffset, yoffset);
     if (lod_enabled)
@@ -54,7 +54,7 @@ void MyViewer::scroll(double xoffset, double yoffset)
     }
 }
 
-void MyViewer::motion(double xpos, double ypos)
+void MeshletViewer::motion(double xpos, double ypos)
 {
     pmp::MeshViewer::motion(xpos, ypos);
     // if user is translating or rotation the camera
@@ -70,7 +70,7 @@ void MyViewer::motion(double xpos, double ypos)
     }
 }
 
-void MyViewer::process_imgui()
+void MeshletViewer::process_imgui()
 {
     pmp::MeshViewer::process_imgui();
 
