@@ -2,7 +2,7 @@
 
 #include "../Meshlets.h"
 #include "./GrowSites.h"
-#include "../sites/RandomSites.h"
+#include "pmp/algorithms/differential_geometry.h"
 
 namespace meshlets {
 /**

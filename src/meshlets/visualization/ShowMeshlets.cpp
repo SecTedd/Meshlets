@@ -1,6 +1,7 @@
-#include <map>
 #include "ShowMeshlets.h"
 #include "../../helpers/Random.h"
+
+#include <map>
 
 namespace meshlets {
 void color_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
@@ -16,7 +17,9 @@ void color_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster)
     {
         color = mesh.get_face_property<pmp::Color>("f:color");
         for (auto face : mesh.faces())
+        {
             color[face] = pmp::Color(0, 0, 0);
+        }
     }
 
     pmp::FaceProperty<bool> is_site = mesh.get_face_property<bool>("f:is_site");

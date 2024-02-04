@@ -4,12 +4,11 @@
 #include "MeshletViewer.h"
 #include "meshlets/sites/PoissonDiskRandom.h"
 #include "meshlets/sites/RandomSites.h"
-#include "meshlets/visualization/ShowSites.h"
 #include "meshlets/clustering/GrowSites.h"
 #include "meshlets/clustering/BruteForceClustering.h"
 #include "meshlets/clustering/Lloyd.h"
-#include "meshlets/visualization/ShowMeshlets.h"
 #include "meshlets/visualization/ShowSites.h"
+#include "meshlets/visualization/ShowMeshlets.h"
 #include "meshlets/LOD/LOD.h"
 
 #include <imgui.h>
@@ -222,7 +221,7 @@ void MeshletViewer::process_imgui()
             meshlets::Cluster cluster_with_only_invalid_meshlets;
             cluster_with_only_invalid_meshlets.reserve(total);
 
-            auto now = std::chrono::high_resolution_clock::now();
+            auto start = std::chrono::high_resolution_clock::now();
             for (auto &meshlet : cluster_and_sites.cluster)
             {
                 if (meshlets::is_valid(mesh_, *meshlet))
@@ -236,7 +235,7 @@ void MeshletViewer::process_imgui()
                 }
             }
             auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - now;
+            std::chrono::duration<double> elapsed = end - start;
             std::clog << "Validating Meshlets took: " << elapsed.count()
                       << std::endl;
 
@@ -292,11 +291,11 @@ void MeshletViewer::process_imgui()
                     return;
                 }
             }
-            auto now = std::chrono::high_resolution_clock::now();
+            auto start = std::chrono::high_resolution_clock::now();
             meshlets::validate_and_fix_meshlets(mesh_,
                                                 cluster_and_sites.cluster);
             auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - now;
+            std::chrono::duration<double> elapsed = end - start;
             std::cout << "Validating and Fixing Meshlets took: "
                       << elapsed.count() << std::endl;
         }
@@ -328,7 +327,7 @@ void MeshletViewer::process_imgui()
                 meshlets::generate_pds_sites(mesh_, num_sites);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Generating Sites took: " << elapsed.count() << " s\n";
+            std::cout << "Generating Sites took: " << elapsed.count() << " s" << std::endl;
         }
 
         ImGui::Spacing();
@@ -347,7 +346,7 @@ void MeshletViewer::process_imgui()
                 meshlets::generate_random_sites(mesh_, num_sites);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Generating Sites took: " << elapsed.count() << " s\n";
+            std::cout << "Generating Sites took: " << elapsed.count() << " s" << std::endl;
         }
 
         ImGui::Spacing();
@@ -372,13 +371,13 @@ void MeshletViewer::process_imgui()
                           << std::endl;
                 return;
             }
-            // measure time
+            
             auto start = std::chrono::high_resolution_clock::now();
             cluster_and_sites.cluster = meshlets::grow_sites(
                 mesh_, cluster_and_sites.sites, max_iterations);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
-            std::cout << "Growing Sites took: " << elapsed.count() << " s\n";
+            std::cout << "Growing Sites took: " << elapsed.count() << " s" << std::endl;
         }
 
         ImGui::Spacing();
@@ -398,14 +397,14 @@ void MeshletViewer::process_imgui()
                           << std::endl;
                 return;
             }
-            // measure time
+
             auto start = std::chrono::high_resolution_clock::now();
             cluster_and_sites.cluster =
                 meshlets::brute_force_sites(mesh_, cluster_and_sites.sites);
             auto end = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Brute Force Clustering took: " << elapsed.count()
-                      << " s\n";
+                      << " s" << std::endl;
         }
 
         ImGui::Spacing();
@@ -430,12 +429,13 @@ void MeshletViewer::process_imgui()
                           << std::endl;
                 return;
             }
+
             auto start = std::chrono::high_resolution_clock::now();
             cluster_and_sites = meshlets::lloyd(mesh_, cluster_and_sites.sites,
                                                 max_lloyd_iterations);
             auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = (end - start);
-            std::cout << "Lloyd Relaxation took: " << elapsed.count() << " s\n";
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Lloyd Relaxation took: " << elapsed.count() << " s" << std::endl;
         }
     }
 
@@ -462,7 +462,7 @@ void MeshletViewer::process_imgui()
                           << std::endl;
                 return;
             }
-            // measure time
+
             auto start = std::chrono::high_resolution_clock::now();
             for (int i = 0; i < benchmark_iterations; i++)
             {
@@ -472,7 +472,7 @@ void MeshletViewer::process_imgui()
             std::chrono::duration<double> elapsed =
                 (end - start) / benchmark_iterations;
             std::cout << "Mean GS-Clustering over " << benchmark_iterations
-                      << " iterations: " << elapsed.count() << " s\n";
+                      << " iterations: " << elapsed.count() << " s" << std::endl;
         }
 
         ImGui::Spacing();
@@ -492,7 +492,7 @@ void MeshletViewer::process_imgui()
                           << std::endl;
                 return;
             }
-            // measure time
+            
             auto start = std::chrono::high_resolution_clock::now();
             for (int i = 0; i < benchmark_iterations; i++)
             {
@@ -502,7 +502,7 @@ void MeshletViewer::process_imgui()
             std::chrono::duration<double> elapsed =
                 (end - start) / benchmark_iterations;
             std::cout << "Mean BF-Clustering over " << benchmark_iterations
-                      << " iterations: " << elapsed.count() << " s\n";
+                      << " iterations: " << elapsed.count() << " s" << std::endl;
         }
     }
 
@@ -535,6 +535,7 @@ void MeshletViewer::process_imgui()
             {
                 lod_enabled = false;
                 lod_tree = meshlets::TreeNode();
+                currently_visible_nodes.clear();
                 std::cout << "LOD disabled" << std::endl;
             }
             else
@@ -564,7 +565,7 @@ void MeshletViewer::process_imgui()
                     renderer_.set_diffuse(0);
                     // fill initially visible nodes with highest level
                     currently_visible_nodes =
-                        meshlets::get_nodes(lod_tree, 1);
+                        meshlets::get_nodes(lod_tree, num_levels - 1);
                     // color it
                     auto camera_position = get_camera_position();
                     meshlets::color_lod(mesh_, lod_tree, camera_position,
@@ -592,6 +593,7 @@ void MeshletViewer::process_imgui()
                           << std::endl;
                 return;
             }
+
             meshlets::color_level(mesh_, lod_tree, level);
             update_mesh();
             set_draw_mode("Smooth Shading");

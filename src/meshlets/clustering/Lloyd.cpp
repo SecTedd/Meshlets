@@ -79,6 +79,7 @@ std::vector<Site> generate_new_sites(pmp::SurfaceMesh &mesh,
         }
     }
 
+    // stopping criterion
     if (center_triangle_changed_count < old_sites.size() * 0.01)
     {
         return std::vector<Site>();
@@ -134,8 +135,6 @@ ClusterAndSites lloyd(pmp::SurfaceMesh &mesh, std::vector<Site> &init_sites,
     // grow sites one last time
     cluster_and_sites.cluster =
         grow_sites(mesh, cluster_and_sites.sites, faces_to_consider);
-    // std::clog << "Lloyd made " << current_iteration << " iterations"
-    //           << std::endl;
     return cluster_and_sites;
 }
 } // namespace meshlets

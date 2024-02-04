@@ -1,13 +1,7 @@
-#include <future>
-#include <mutex>
-#include <map>
 #include "Meshlets.h"
-#include "./sites/PoissonDiskRandom.h"
-#include "./clustering/BruteForceClustering.h"
-#include "./clustering/GrowSites.h"
-#include "./visualization/ShowMeshlets.h"
 
 #include <iostream>
+#include <map>
 
 namespace meshlets {
 bool operator==(const TreeNode &lhs, const TreeNode &rhs)
@@ -71,62 +65,6 @@ int get_meshlet_id(pmp::SurfaceMesh &mesh, pmp::Face &site_face)
         }
     }
     return meshlet_id;
-}
-
-// helper function to find out whether start is connected to end via a path
-// only containing faaces of the same meshlet
-bool is_connected_via_edges(pmp::SurfaceMesh &mesh, pmp::Face &start,
-                            pmp::Face &end)
-{
-    if (start == end)
-    {
-        return true;
-    }
-
-    auto closest_site = mesh.get_face_property<int>("f:closest_site");
-    assert(closest_site);
-
-    int id_to_match = closest_site[start];
-
-    std::unordered_map<pmp::IndexType, bool> visited_faces_map;
-    std::vector<pmp::Face> faces_to_visit;
-    faces_to_visit.push_back(start);
-
-    bool end_found = false;
-    while (!end_found && faces_to_visit.size() > 0)
-    {
-        std::vector<pmp::Face> faces_to_visit_next;
-        std::vector<pmp::Face> visited_faces;
-        for (auto &face : faces_to_visit)
-        {
-            for (auto &adjacent_face : get_adjacent_faces(mesh, face))
-            {
-                if (adjacent_face == end)
-                {
-                    end_found = true;
-                    break;
-                }
-                // prune paths that contain faces of other meshlets
-                if (closest_site[adjacent_face] != id_to_match)
-                {
-                    continue;
-                }
-                if (visited_faces_map.find(adjacent_face.idx()) ==
-                    visited_faces_map.end())
-                {
-                    visited_faces.push_back(adjacent_face);
-                    faces_to_visit_next.push_back(adjacent_face);
-                }
-            }
-        }
-        for (auto &face : visited_faces)
-        {
-            visited_faces_map[face.idx()] = true;
-        }
-        faces_to_visit = faces_to_visit_next;
-    }
-
-    return end_found;
 }
 
 // helper function that returns all faces that are connected to the site face via edges
@@ -193,7 +131,7 @@ bool is_valid(pmp::SurfaceMesh &mesh, Meshlet &meshlet)
 
     // rule 3
     bool rule_3 = true;
-    // skip 0 iteration, because it containes the legit meshlet's site
+    // skip 0 iteration, because it contains the legit meshlet's site
     for (int num_iteration = 1; num_iteration < meshlet.size(); num_iteration++)
     {
         auto iteration = meshlet.at(num_iteration);
@@ -317,8 +255,8 @@ void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster,
                                         face),
                                     meshlet->at(added_in_iteration[face])
                                         ->end());
+                                        
                             // add face to new site (for now it keeps the iteration number)
-
                             new_meshlet->at(added_in_iteration[face])
                                 ->push_back(face);
                             closest_site[face] = max_count_site_id;

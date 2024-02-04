@@ -1,11 +1,11 @@
-#include <map>
 #include "LOD.h"
 #include "../sites/RandomSites.h"
 #include "../clustering/Lloyd.h"
 #include "../../helpers/Random.h"
 
-namespace meshlets {
+#include <map>
 
+namespace meshlets {
 std::vector<TreeNode> get_nodes(TreeNode &root, int level)
 {
     std::vector<TreeNode> nodes;
@@ -121,7 +121,9 @@ void color_level(pmp::SurfaceMesh &mesh, TreeNode &root, int level)
     {
         color = mesh.get_face_property<pmp::Color>("f:color");
         for (auto face : mesh.faces())
+        {
             color[face] = pmp::Color(0, 0, 0);
+        }
     }
 
     auto nodes = get_nodes(root, level);

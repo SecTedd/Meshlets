@@ -1,16 +1,15 @@
 #include "CubicBezier.h"
 
 namespace helpers {
-
 Point cubicBezier(float t, Point &p0, Point &p1, Point &p2,
                   Point &p3)
 {
     Point result;
 
     float u = 1.0f - t;
-    float tt = t * t;
     float uu = u * u;
     float uuu = uu * u;
+    float tt = t * t;
     float ttt = tt * t;
 
     // formula

@@ -37,8 +37,6 @@ Cluster brute_force_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites)
     auto is_site = mesh.get_face_property<bool>("f:is_site");
     assert(is_site);
 
-    // create a vector to store a data structure for all sites:
-    // datastructure is a  vector of vectors to store the faces added in each iteration
     Cluster cluster(sites.size());
     for (auto &site : sites)
     {

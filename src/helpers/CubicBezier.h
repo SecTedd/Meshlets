@@ -1,7 +1,6 @@
 #pragma once
 
 namespace helpers {
-
 /**
  * @brief The Point data structure holds the information of a point.
 */
@@ -29,5 +28,4 @@ typedef struct Point
  * @param p3 the fourth control point of the curve
 */
 Point cubicBezier(float t, Point &p0, Point &p1, Point &p2, Point &p3);
-
 } // namespace helpers

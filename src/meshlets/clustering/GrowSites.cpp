@@ -6,7 +6,6 @@
 #include "../../helpers/CubicBezier.h"
 
 namespace meshlets {
-
 Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
                    int max_iterations)
 {
@@ -76,8 +75,6 @@ Cluster grow_sites(pmp::SurfaceMesh &mesh, std::vector<Site> &sites,
     int current_iteration = 0;
     int mean_faces_added_per_iteration = 100;
 
-    // create a vector to store a data structure for all sites:
-    // datastructure is a  vector of vectors to store the faces added in each iteration
     Cluster cluster(sites.size());
     for (auto &site : sites)
     {

@@ -33,9 +33,10 @@ void color_level(pmp::SurfaceMesh &mesh, TreeNode &root, int level);
 /**
  * @brief Visualizes the level of detail on the mesh.
  * 
- * @param mesh The mesh to visualize
+ * @param mesh The mesh to visualize the lod on
  * @param root The root of the lod tree
  * @param camera_position The position of the camera
+ * @param currently_visible_nodes The currently visible nodes
 */
 void color_lod(pmp::SurfaceMesh &mesh, TreeNode &root,
                pmp::vec3 &camera_position,

@@ -8,7 +8,6 @@
 #include <vector>
 
 namespace meshlets {
-
 /**
  * @brief The Meshlet data structure is a vector of iterations, where each iteration is a vector of faces. The first (0) iteration only holds the site_face.
 */
@@ -55,7 +54,7 @@ typedef struct ClusterAndSites
 } ClusterAndSites;
 
 /**
- * @brief The TreeNode data structure is used to build a tree of meshlets (needed for LOD).
+ * @brief The TreeNode data structure is used to store a tree of meshlets (needed for LOD).
 */
 typedef struct TreeNode
 {
@@ -113,13 +112,6 @@ void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster);
 */
 void validate_and_fix_meshlets(pmp::SurfaceMesh &mesh, Cluster &cluster,
                                std::vector<pmp::Face> &faces_to_consider);
-
-/**
- * @brief evaluates a clustering based on certain criteria and returns a score (score is not bounded)
- * 
- * @param cluster the cluster to evaluate
-*/
-float evaluate_clustering(Cluster &cluster);
 
 /**
  * @brief helper function to get the site_face of a meshlet
